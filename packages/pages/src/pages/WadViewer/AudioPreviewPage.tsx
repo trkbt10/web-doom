@@ -89,7 +89,6 @@ function AudioPreviewPage({ wadFile }: AudioPreviewPageProps) {
       // DOOM sound effects have a specific header
       if (audio.lump.data.byteLength >= 8) {
         const view = new DataView(audio.lump.data);
-        const format = view.getUint16(0, true);
         const sampleRate = view.getUint16(2, true);
         const sampleCount = view.getUint32(4, true);
         return `PC Speaker format (${sampleRate}Hz, ${sampleCount} samples)`;
