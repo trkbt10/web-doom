@@ -74,7 +74,7 @@ export class DoomEngine {
   /**
    * Update game state
    */
-  private update(deltaTime: number): void {
+  private update(_deltaTime: number): void {
     // TODO: Implement game logic
   }
 

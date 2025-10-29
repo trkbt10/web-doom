@@ -11,7 +11,8 @@ export default defineConfig({
     },
     rollupOptions: {
       external: []
-    }
+    },
+    emptyOutDir: false
   },
   test: {
     globals: true,

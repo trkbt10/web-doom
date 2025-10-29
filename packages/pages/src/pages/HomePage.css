@@ -1,0 +1,165 @@
+.home-page {
+  min-height: 100vh;
+  padding: 40px;
+}
+
+.home-container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.home-header {
+  text-align: center;
+  margin-bottom: 60px;
+}
+
+.home-title {
+  font-size: 4rem;
+  color: #ff0000;
+  text-shadow: 4px 4px #600;
+  margin-bottom: 20px;
+  letter-spacing: 4px;
+}
+
+.home-subtitle {
+  font-size: 1.2rem;
+  color: #00ff00;
+  opacity: 0.9;
+}
+
+.home-features {
+  margin-bottom: 60px;
+}
+
+.home-features h2 {
+  font-size: 2rem;
+  margin-bottom: 30px;
+  text-align: center;
+}
+
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 30px;
+  margin-top: 30px;
+}
+
+.feature-card {
+  background: #111;
+  border: 2px solid #00ff00;
+  padding: 30px;
+  transition: all 0.3s;
+}
+
+.feature-card:hover {
+  border-color: #ff0000;
+  transform: translateY(-5px);
+  box-shadow: 0 5px 20px rgba(0, 255, 0, 0.3);
+}
+
+.feature-card h3 {
+  font-size: 1.5rem;
+  margin-bottom: 15px;
+  color: #ff0000;
+}
+
+.feature-card p {
+  margin-bottom: 20px;
+  line-height: 1.6;
+  opacity: 0.9;
+}
+
+.feature-link {
+  display: inline-block;
+  color: #00ff00;
+  text-decoration: none;
+  font-weight: bold;
+  transition: all 0.3s;
+}
+
+.feature-link:hover {
+  color: #ff0000;
+  text-decoration: none;
+}
+
+.home-about {
+  background: #111;
+  border: 2px solid #00ff00;
+  padding: 40px;
+  margin-bottom: 60px;
+}
+
+.home-about h2 {
+  font-size: 2rem;
+  margin-bottom: 20px;
+}
+
+.home-about > p {
+  margin-bottom: 30px;
+  line-height: 1.8;
+  opacity: 0.9;
+}
+
+.tech-stack {
+  margin-top: 30px;
+}
+
+.tech-stack h3 {
+  font-size: 1.3rem;
+  margin-bottom: 15px;
+  color: #ff0000;
+}
+
+.tech-stack ul {
+  list-style: none;
+  padding: 0;
+}
+
+.tech-stack li {
+  padding: 8px 0;
+  padding-left: 20px;
+  position: relative;
+}
+
+.tech-stack li::before {
+  content: '»';
+  position: absolute;
+  left: 0;
+  color: #00ff00;
+  font-weight: bold;
+}
+
+.home-footer {
+  text-align: center;
+  padding: 40px 0;
+  border-top: 1px solid #00ff00;
+  opacity: 0.7;
+}
+
+.home-footer p {
+  margin: 5px 0;
+  font-size: 0.9rem;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .home-page {
+    padding: 20px;
+  }
+
+  .home-title {
+    font-size: 2.5rem;
+  }
+
+  .home-subtitle {
+    font-size: 1rem;
+  }
+
+  .features-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .home-about {
+    padding: 20px;
+  }
+}

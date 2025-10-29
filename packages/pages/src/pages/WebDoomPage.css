@@ -1,0 +1,171 @@
+.web-doom-page {
+  min-height: 100vh;
+  padding: 40px;
+}
+
+.web-doom-container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.game-container {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+}
+
+.canvas-wrapper {
+  background: #111;
+  border: 3px solid #00ff00;
+  padding: 20px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.game-canvas {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+.controls {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.control-button {
+  padding: 15px 30px;
+  font-size: 1.1rem;
+  font-weight: bold;
+  border: 2px solid #00ff00;
+  background: #111;
+  color: #00ff00;
+  cursor: pointer;
+  transition: all 0.3s;
+  text-transform: uppercase;
+}
+
+.control-button:hover:not(:disabled) {
+  background: #00ff00;
+  color: #000;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 255, 0, 0.5);
+}
+
+.control-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.start-button:not(:disabled) {
+  border-color: #00ff00;
+  color: #00ff00;
+}
+
+.start-button:hover:not(:disabled) {
+  background: #00ff00;
+  color: #000;
+}
+
+.stop-button:not(:disabled) {
+  border-color: #ff0000;
+  color: #ff0000;
+}
+
+.stop-button:hover:not(:disabled) {
+  background: #ff0000;
+  color: #000;
+}
+
+.load-button {
+  border-color: #ffff00;
+  color: #ffff00;
+}
+
+.load-button:hover {
+  background: #ffff00;
+  color: #000;
+}
+
+.game-info {
+  background: #111;
+  border: 2px solid #00ff00;
+  padding: 30px;
+}
+
+.game-info h3 {
+  font-size: 1.5rem;
+  margin-bottom: 20px;
+  color: #ff0000;
+}
+
+.game-info ul {
+  list-style: none;
+  padding: 0;
+  margin-bottom: 20px;
+}
+
+.game-info li {
+  padding: 10px 0;
+  border-bottom: 1px solid #222;
+}
+
+.game-info li:last-child {
+  border-bottom: none;
+}
+
+.game-info strong {
+  color: #00ff00;
+  display: inline-block;
+  min-width: 150px;
+}
+
+.info-note {
+  margin-top: 20px;
+  padding: 15px;
+  background: #1a1a00;
+  border-left: 4px solid #ffff00;
+  color: #ffff00;
+  font-style: italic;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .web-doom-page {
+    padding: 20px;
+  }
+
+  .canvas-wrapper {
+    padding: 10px;
+  }
+
+  .controls {
+    flex-direction: column;
+  }
+
+  .control-button {
+    width: 100%;
+  }
+
+  .game-info {
+    padding: 20px;
+  }
+
+  .game-info strong {
+    display: block;
+    margin-bottom: 5px;
+  }
+}
+
+/* Tablet responsiveness */
+@media (max-width: 900px) and (min-width: 769px) {
+  .game-canvas {
+    width: 100%;
+    height: auto;
+  }
+}
