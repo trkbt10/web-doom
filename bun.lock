@@ -10,6 +10,21 @@
         "vite-plugin-dts": "^4.5.4",
       },
     },
+    "packages/game-controller": {
+      "name": "@web-doom/game-controller",
+      "version": "0.0.1",
+      "devDependencies": {
+        "@types/node": "^20.10.0",
+        "@types/react": "^18.2.0",
+        "react": "^18.2.0",
+        "typescript": "^5.3.3",
+        "vite": "^5.0.0",
+        "vitest": "^1.0.0",
+      },
+      "peerDependencies": {
+        "react": "^18.0.0",
+      },
+    },
     "packages/pages": {
       "name": "@web-doom/pages",
       "version": "0.0.1",
@@ -306,6 +321,8 @@
     "@vue/shared": ["@vue/shared@3.5.22", "", {}, "sha512-F4yc6palwq3TT0u+FYf0Ns4Tfl9GRFURDN2gWG7L1ecIaS/4fCIuFOjMTnCyjsu/OK6vaDKLCrGAa+KvvH+h4w=="],
 
     "@web-doom/core": ["@web-doom/core@workspace:packages/web-doom"],
+
+    "@web-doom/game-controller": ["@web-doom/game-controller@workspace:packages/game-controller"],
 
     "@web-doom/pages": ["@web-doom/pages@workspace:packages/pages"],
 
