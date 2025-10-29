@@ -27,6 +27,18 @@ function HomePage(): ReactElement {
             </div>
 
             <div className="feature-card">
+              <h3>Web DOOM - 2D Renderer</h3>
+              <p>Top-down view of DOOM using Canvas 2D API. Great for debugging and understanding map layouts.</p>
+              <Link to="/web-doom-2d" className="feature-link">Launch 2D Renderer →</Link>
+            </div>
+
+            <div className="feature-card">
+              <h3>Web DOOM - 3D Renderer</h3>
+              <p>First-person 3D view using raycasting. Experience DOOM with texture mapping and immersive gameplay.</p>
+              <Link to="/web-doom-3d" className="feature-link">Launch 3D Renderer →</Link>
+            </div>
+
+            <div className="feature-card">
               <h3>Image Converter</h3>
               <p>Convert between PNG/JPEG images and DOOM picture format. Create custom textures and sprites for WAD files.</p>
               <Link to="/image-converter" className="feature-link">Open Converter →</Link>
