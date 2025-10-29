@@ -101,7 +101,7 @@ export function groupTexturesByCategory(textures: ExtractedTexture[]): TextureGr
   // Create texture groups with prompts
   const result: TextureGroup[] = [];
 
-  for (const [category, categoryTextures] of groups) {
+  for (const [category, categoryTextures] of Array.from(groups.entries())) {
     const categoryDesc = getCategoryDescription(category);
     const groupPrompt = `Transform a batch of DOOM ${categoryDesc} while maintaining consistency and the retro gaming aesthetic.`;
 
@@ -226,7 +226,7 @@ export function createSemanticGroups(textures: ExtractedTexture[]): Map<string, 
 
   // Add remaining ungrouped textures
   const groupedNames = new Set<string>();
-  for (const group of groups.values()) {
+  for (const group of Array.from(groups.values())) {
     for (const texture of group.textures) {
       groupedNames.add(texture.name);
     }

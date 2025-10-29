@@ -66,7 +66,9 @@ async function main() {
   // Load WAD file
   console.log('Loading WAD file...');
   const wadBuffer = fs.readFileSync(wadPath);
-  const wad = decode(wadBuffer);
+  // Convert Buffer to ArrayBuffer
+  const arrayBuffer = wadBuffer.buffer.slice(wadBuffer.byteOffset, wadBuffer.byteOffset + wadBuffer.byteLength) as ArrayBuffer;
+  const wad = decode(arrayBuffer);
   console.log(`Loaded WAD with ${wad.lumps.length} lumps`);
   console.log('');
 
@@ -83,7 +85,7 @@ async function main() {
   console.log('');
 
   // Display groups
-  for (const [groupName, group] of semanticGroups) {
+  for (const [groupName, group] of Array.from(semanticGroups.entries())) {
     console.log(`  ${groupName}: ${group.textures.length} textures`);
   }
   console.log('');

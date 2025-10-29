@@ -219,7 +219,7 @@ export async function saveTransformationResults(
       const base64Data = parts[1];
       const buffer = Buffer.from(base64Data, 'base64');
 
-      fs.writeFileSync(filepath, buffer);
+      fs.writeFileSync(filepath, new Uint8Array(buffer));
       console.log(`Saved: ${filepath}`);
     } else {
       console.error(`Failed to transform ${result.original.name}: ${result.error}`);
