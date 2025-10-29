@@ -1,91 +1,212 @@
 /**
  * Web DOOM - DOOM engine implementation for web
+ * Functional, web-standard approach with renderer decoupling
  */
 
-import { decode, type WadFile } from '@web-doom/wad';
+import { WadFile } from '@web-doom/wad';
+import { parseMap, getMapNames } from './map/parser';
+import { createGameState, setMap, addPlayer, GameState } from './game-state';
+import type { DoomGameState } from './game-state';
+import { createPlayer } from './player/types';
+import { initInput } from './input/input';
+import type { KeyBindings } from './input/input';
+import { createGameLoop } from './game-loop';
+import type { GameLoopConfig } from './game-loop';
+import { Difficulty, GameMode } from './types';
+import type { Renderer } from './renderer';
+import { ThingType } from './entities/types';
 
-export interface DoomConfig {
-  canvas: HTMLCanvasElement;
-  wadFile: ArrayBuffer;
+/**
+ * DOOM Engine instance
+ */
+export interface DoomEngine {
+  /** Get current game state */
+  getState: () => DoomGameState;
+
+  /** Load a map */
+  loadMap: (mapName: string) => Promise<void>;
+
+  /** Get available map names */
+  getMapNames: () => string[];
+
+  /** Start the game */
+  start: () => void;
+
+  /** Stop the game */
+  stop: () => void;
+
+  /** Check if running */
+  isRunning: () => boolean;
+
+  /** Get renderer */
+  getRenderer: () => Renderer;
+
+  /** Cleanup */
+  dispose: () => void;
 }
 
 /**
- * Main DOOM engine class
+ * Configuration for creating a DOOM engine instance
  */
-export class DoomEngine {
-  private canvas: HTMLCanvasElement;
-  private ctx: CanvasRenderingContext2D;
-  private wad: WadFile;
-  private running: boolean = false;
-  private lastTime: number = 0;
+export interface CreateDoomEngineConfig {
+  /** WAD file */
+  wad: WadFile;
 
-  constructor(config: DoomConfig) {
-    this.canvas = config.canvas;
-    const ctx = this.canvas.getContext('2d');
-    if (!ctx) {
-      throw new Error('Failed to get 2D context');
-    }
-    this.ctx = ctx;
-    this.wad = decode(config.wadFile);
-  }
+  /** Renderer implementation */
+  renderer: Renderer;
 
-  /**
-   * Initialize the engine
-   */
-  init(): void {
-    console.log('DOOM Engine initialized');
-    console.log('WAD Type:', this.wad.header.identification);
-    console.log('Lumps:', this.wad.header.numlumps);
-  }
+  /** HTML element for input handling */
+  element: HTMLElement;
 
-  /**
-   * Start the game loop
-   */
-  start(): void {
-    if (this.running) return;
-    this.running = true;
-    this.lastTime = performance.now();
-    this.gameLoop();
-  }
+  /** Game difficulty */
+  difficulty?: Difficulty;
 
-  /**
-   * Stop the game loop
-   */
-  stop(): void {
-    this.running = false;
-  }
+  /** Game mode */
+  gameMode?: GameMode;
 
-  /**
-   * Main game loop
-   */
-  private gameLoop = (): void => {
-    if (!this.running) return;
+  /** Initial map to load */
+  initialMap?: string;
 
-    const currentTime = performance.now();
-    const deltaTime = (currentTime - this.lastTime) / 1000;
-    this.lastTime = currentTime;
+  /** Key bindings */
+  keyBindings?: KeyBindings;
 
-    this.update(deltaTime);
-    this.render();
-
-    requestAnimationFrame(this.gameLoop);
-  };
-
-  /**
-   * Update game state
-   */
-  private update(_deltaTime: number): void {
-    // TODO: Implement game logic
-  }
-
-  /**
-   * Render frame
-   */
-  private render(): void {
-    // Clear screen
-    this.ctx.fillStyle = '#000000';
-    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-
-    // TODO: Implement rendering
-  }
+  /** Game loop configuration */
+  gameLoopConfig?: GameLoopConfig;
 }
+
+/**
+ * Create a DOOM engine instance
+ */
+export async function createDoomEngine(config: CreateDoomEngineConfig): Promise<DoomEngine> {
+  // Create game state
+  let gameState = createGameState(config.wad, config.difficulty, config.gameMode);
+
+  // Initialize input
+  const inputCleanup = initInput(config.element, gameState.input, config.keyBindings);
+
+  // Create game loop
+  const gameLoop = createGameLoop(
+    () => gameState,
+    (newState) => {
+      gameState = newState;
+    },
+    config.renderer,
+    config.gameLoopConfig
+  );
+
+  // Load initial map if specified
+  if (config.initialMap) {
+    const map = parseMap(config.wad, config.initialMap);
+    if (map) {
+      gameState = setMap(gameState, map);
+
+      // Find player start
+      const playerStart = findPlayerStart(config.wad, config.initialMap);
+      if (playerStart) {
+        const player = createPlayer(
+          0,
+          { x: playerStart.x, y: playerStart.y, z: 0 },
+          playerStart.angle
+        );
+        gameState = addPlayer(gameState, player);
+      }
+    }
+  }
+
+  return {
+    getState: () => gameState,
+
+    loadMap: async (mapName: string) => {
+      const map = parseMap(config.wad, mapName);
+      if (!map) {
+        throw new Error(`Failed to load map: ${mapName}`);
+      }
+
+      gameState = setMap(gameState, map);
+
+      // Find player start
+      const playerStart = findPlayerStart(config.wad, mapName);
+      if (playerStart) {
+        const player = createPlayer(
+          0,
+          { x: playerStart.x, y: playerStart.y, z: 0 },
+          playerStart.angle
+        );
+        gameState = addPlayer(gameState, player);
+      }
+
+      gameState.state = GameState.Playing;
+    },
+
+    getMapNames: () => getMapNames(config.wad),
+
+    start: () => {
+      gameState.state = GameState.Playing;
+      gameLoop.start();
+    },
+
+    stop: () => {
+      gameLoop.stop();
+      gameState.state = GameState.Paused;
+    },
+
+    isRunning: () => gameLoop.isRunning(),
+
+    getRenderer: () => config.renderer,
+
+    dispose: () => {
+      gameLoop.stop();
+      inputCleanup();
+      config.renderer.dispose();
+    },
+  };
+}
+
+/**
+ * Find player start position in a map
+ */
+function findPlayerStart(
+  wad: WadFile,
+  mapName: string
+): { x: number; y: number; angle: number } | null {
+  const map = parseMap(wad, mapName);
+  if (!map) return null;
+
+  // Parse THINGS lump to find player start
+  const mapIndex = wad.lumps.findIndex((lump: { name: string }) => lump.name === mapName);
+  if (mapIndex === -1) return null;
+
+  const thingsLump = wad.lumps[mapIndex + 1]; // THINGS is first after map marker
+  if (!thingsLump || !thingsLump.name.startsWith('THINGS')) return null;
+
+  const data = new DataView(thingsLump.data);
+  const thingCount = thingsLump.size / 10; // Each thing is 10 bytes
+
+  for (let i = 0; i < thingCount; i++) {
+    const offset = i * 10;
+    const x = data.getInt16(offset, true);
+    const y = data.getInt16(offset + 2, true);
+    const angle = data.getInt16(offset + 4, true);
+    const type = data.getInt16(offset + 6, true);
+
+    if (type === ThingType.Player1Start) {
+      // Convert DOOM angle (0-359) to radians
+      const radians = (angle * Math.PI) / 180;
+      return { x, y, angle: radians };
+    }
+  }
+
+  return null;
+}
+
+// Re-export types and utilities
+export * from './types';
+export * from './game-state';
+export * from './renderer';
+export * from './map/types';
+export * from './map/parser';
+export * from './player/types';
+export * from './entities/types';
+export * from './input/input';
+export * from './physics/collision';
+export * from './game-loop';
