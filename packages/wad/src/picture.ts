@@ -60,6 +60,10 @@ export interface DoomPicture {
  * Decode DOOM picture header
  */
 export function decodePictureHeader(buffer: ArrayBuffer): DoomPictureHeader {
+  if (buffer.byteLength < 8) {
+    throw new Error(`Buffer too small for picture header: ${buffer.byteLength} bytes (need at least 8)`);
+  }
+
   const view = new DataView(buffer);
 
   return {
@@ -77,11 +81,20 @@ export function decodePictureColumn(
   buffer: ArrayBuffer,
   offset: number
 ): DoomPictureColumn {
+  if (offset >= buffer.byteLength) {
+    throw new Error(`Column offset ${offset} is out of bounds (buffer size: ${buffer.byteLength})`);
+  }
+
   const view = new DataView(buffer);
   const posts: DoomPicturePost[] = [];
   let currentOffset = offset;
 
   while (true) {
+    // Check if we can read topdelta
+    if (currentOffset >= buffer.byteLength) {
+      throw new Error(`Unexpected end of buffer while reading column at offset ${currentOffset}`);
+    }
+
     const topdelta = view.getUint8(currentOffset);
 
     // 0xFF marks end of column
@@ -90,11 +103,22 @@ export function decodePictureColumn(
     }
 
     currentOffset++;
+
+    // Check if we can read length
+    if (currentOffset >= buffer.byteLength) {
+      throw new Error(`Unexpected end of buffer while reading column length at offset ${currentOffset}`);
+    }
+
     const length = view.getUint8(currentOffset);
     currentOffset++;
 
     // Skip unused padding byte
     currentOffset++;
+
+    // Check if we can read pixel data
+    if (currentOffset + length > buffer.byteLength) {
+      throw new Error(`Column pixel data extends beyond buffer bounds at offset ${currentOffset} (length: ${length}, buffer size: ${buffer.byteLength})`);
+    }
 
     // Read pixel data
     const pixels = new Uint8Array(buffer, currentOffset, length);
@@ -117,19 +141,44 @@ export function decodePictureColumn(
  */
 export function decodePicture(buffer: ArrayBuffer): DoomPicture {
   const header = decodePictureHeader(buffer);
+
+  // Check if buffer has enough space for column offsets
+  const minBufferSize = 8 + header.width * 4;
+  if (buffer.byteLength < minBufferSize) {
+    throw new Error(
+      `Buffer too small for picture data: ${buffer.byteLength} bytes ` +
+      `(need at least ${minBufferSize} for ${header.width} columns)`
+    );
+  }
+
   const view = new DataView(buffer);
 
   // Read column offsets
   const columnOffsets: number[] = [];
   for (let i = 0; i < header.width; i++) {
     const offset = view.getUint32(8 + i * 4, true);
+
+    // Validate column offset
+    if (offset >= buffer.byteLength) {
+      throw new Error(
+        `Invalid column offset ${offset} for column ${i} (buffer size: ${buffer.byteLength})`
+      );
+    }
+
     columnOffsets.push(offset);
   }
 
   // Decode columns
   const columns: DoomPictureColumn[] = [];
-  for (const offset of columnOffsets) {
-    columns.push(decodePictureColumn(buffer, offset));
+  for (let i = 0; i < columnOffsets.length; i++) {
+    const offset = columnOffsets[i];
+    try {
+      columns.push(decodePictureColumn(buffer, offset));
+    } catch (error) {
+      throw new Error(
+        `Failed to decode column ${i} at offset ${offset}: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
   }
 
   // Convert columns to 2D pixel array

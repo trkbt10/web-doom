@@ -71,7 +71,9 @@ export function saveGame(state: DoomGameState, slot: number): boolean {
         angle: player.angle,
         health: player.stats.health,
         armor: player.stats.armor,
-        weapons: Array.from(player.inventory.weapons),
+        weapons: player.inventory.weapons
+          .map((hasWeapon, index) => (hasWeapon ? index : -1))
+          .filter((index) => index >= 0),
         currentWeapon: player.currentWeapon,
         ammo: { ...player.inventory.ammo },
       },
@@ -159,8 +161,10 @@ export function loadGame(state: DoomGameState, slot: number): DoomGameState | nu
       },
       inventory: {
         ...player.inventory,
-        weapons: new Set(saveData.player.weapons),
-        ammo: { ...saveData.player.ammo },
+        weapons: player.inventory.weapons.map((_, index) =>
+          saveData.player.weapons.includes(index)
+        ),
+        ammo: player.inventory.ammo.map((_, index) => saveData.player.ammo[index] ?? 0),
       },
       currentWeapon: saveData.player.currentWeapon,
     };
@@ -179,6 +183,7 @@ export function loadGame(state: DoomGameState, slot: number): DoomGameState | nu
           y: savedThing.y,
           z: savedThing.z,
         },
+        velocity: { x: 0, y: 0, z: 0 },
         angle: savedThing.angle,
         health: savedThing.health,
         state: savedThing.state,
@@ -186,7 +191,11 @@ export function loadGame(state: DoomGameState, slot: number): DoomGameState | nu
         radius: 20, // Will be overwritten by thing def
         height: 56,
         sprite: '',
-        speed: 0,
+        frame: 0,
+        tics: 0,
+        threshold: 0,
+        moveDir: 0,
+        moveCount: 0,
       };
 
       // Apply thing definition defaults
