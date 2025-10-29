@@ -59,7 +59,7 @@ export function createWadWithLumps(
 ): WadFile {
   const encoder = new TextEncoder();
 
-  const wadLumps: WadLump[] = lumps.map((lump, i) => {
+  const wadLumps: WadLump[] = lumps.map((lump) => {
     const data =
       typeof lump.data === 'string'
         ? encoder.encode(lump.data).buffer
