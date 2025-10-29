@@ -143,3 +143,40 @@ export {
   pngFileToPictureLump,
   parsePaletteFromPLAYPAL,
 } from './image-converter';
+
+// Audio types
+export type {
+  DmxSoundHeader,
+  DmxSound,
+  MusHeader,
+  MusEvent,
+  MusFile,
+  AudioPlayerState,
+  AudioDecodeOptions,
+} from './audio-types';
+
+export { MusEventType } from './audio-types';
+
+// Audio sound effects (DMX/PC Speaker)
+export {
+  decodeSoundHeader,
+  decodeSound,
+  soundToFloat32,
+  getSoundDuration,
+  isSoundFormat,
+} from './audio-sound';
+
+// Audio music (MUS format)
+export {
+  decodeMusHeader,
+  decodeMusEvents,
+  decodeMus,
+  isMusFormat,
+  musNoteToMidi,
+  getMusControllerName,
+  MUS_TO_MIDI_NOTE_MAP,
+} from './audio-mus';
+
+// Audio players (WebAudio)
+export { DmxSoundPlayer, AudioManager } from './audio-player';
+export { MusPlayer } from './audio-mus-player';
