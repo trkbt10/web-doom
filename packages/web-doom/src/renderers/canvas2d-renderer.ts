@@ -120,13 +120,19 @@ export class Canvas2DRenderer implements Renderer {
   }
 
   renderAutomap(
-    _linedefs: Linedef[],
+    linedefs: Linedef[],
     playerPos: Vec2,
     playerAngle: Angle,
     _scale: number
   ): void {
-    // Automap is already rendered in the main view for 2D renderer
-    // Draw player position
+    // Draw automap linedefs if provided (when automap is enabled)
+    if (linedefs.length > 0) {
+      this.ctx.strokeStyle = 'rgba(128, 128, 128, 0.5)';
+      this.ctx.lineWidth = 1;
+      // TODO: Render linedefs
+    }
+
+    // Always draw player position
     const pos = this.worldToScreen(playerPos);
 
     // Draw player as triangle
@@ -135,12 +141,15 @@ export class Canvas2DRenderer implements Renderer {
     this.ctx.rotate(playerAngle);
 
     this.ctx.fillStyle = '#00ff00';
+    this.ctx.strokeStyle = '#00aa00';
+    this.ctx.lineWidth = 2;
     this.ctx.beginPath();
-    this.ctx.moveTo(10, 0);
-    this.ctx.lineTo(-5, -5);
-    this.ctx.lineTo(-5, 5);
+    this.ctx.moveTo(15, 0);
+    this.ctx.lineTo(-8, -8);
+    this.ctx.lineTo(-8, 8);
     this.ctx.closePath();
     this.ctx.fill();
+    this.ctx.stroke();
 
     this.ctx.restore();
   }
