@@ -94,3 +94,52 @@ export {
   createMinimalWad,
   verifyWad,
 } from './test-helpers';
+
+// Image test helpers
+export {
+  createTestPicture,
+  comparePictures,
+  testPictureRoundTrip,
+  testCanvasRoundTrip,
+  runAllRoundTripTests,
+  createSimpleTestPicture,
+  createTransparentTestPicture,
+} from './image-test-helpers';
+
+// Picture format
+export type {
+  DoomPictureHeader,
+  DoomPicturePost,
+  DoomPictureColumn,
+  DoomPicture,
+} from './picture';
+
+export {
+  decodePictureHeader,
+  decodePictureColumn,
+  decodePicture,
+  encodePictureHeader,
+  encodePictureColumn,
+  encodePicture,
+  pixelsToColumns,
+  createPicture,
+} from './picture';
+
+// Image conversion
+export type {
+  PictureToCanvasOptions,
+  CanvasToPictureOptions,
+} from './image-converter';
+
+export {
+  DEFAULT_DOOM_PALETTE,
+  pictureToCanvas,
+  canvasToPicture,
+  loadImageToCanvas,
+  loadFileToCanvas,
+  canvasToPNG,
+  canvasToDataURL,
+  pictureLumpToDataURL,
+  pngFileToPictureLump,
+  parsePaletteFromPLAYPAL,
+} from './image-converter';
