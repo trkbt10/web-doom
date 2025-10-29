@@ -8,6 +8,7 @@ import type { Player } from './player/types';
 import type { Thing } from './entities/types';
 import type { InputState } from './input/input';
 import { Difficulty, GameMode, type TimeSeconds } from './types';
+import { SectorActionManager } from './map/sector-actions';
 
 /**
  * Game state
@@ -62,6 +63,9 @@ export interface DoomGameState {
 
   /** Frame counter */
   frameCount: number;
+
+  /** Sector action manager */
+  sectorActionManager: SectorActionManager;
 }
 
 /**
@@ -86,6 +90,7 @@ export function createGameState(
     showAutomap: false,
     fps: 0,
     frameCount: 0,
+    sectorActionManager: new SectorActionManager(),
   };
 }
 

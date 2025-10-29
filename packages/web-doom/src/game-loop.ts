@@ -3,13 +3,16 @@
  */
 
 import type { DoomGameState } from './game-state';
-import { updateGameState, updateFPS, getActivePlayer, updatePlayer, removeThing } from './game-state';
+import { updateGameState, updateFPS, getActivePlayer, updatePlayer, removeThing, updateThing } from './game-state';
 import type { Renderer } from './renderer';
 import { getMovementInput, getTurnInput, clearFrameInput, isActionActive } from './input/input';
 import { InputAction } from './input/input';
 import { tryMove, getHeightAt } from './physics/collision';
 import type { TimeSeconds } from './types';
 import { isPickup, ThingType } from './entities/types';
+import { activateLinedef } from './map/sector-actions';
+import { fireHitscanWeapon, calculateDamage, applyDamage, weaponDefs, WeaponType } from './weapons/weapon-system';
+import { updateMonsterAI, applyMonsterDamage } from './ai/monster-ai';
 
 /**
  * Game loop configuration
@@ -139,6 +142,11 @@ function update(state: DoomGameState, deltaTime: TimeSeconds): DoomGameState {
   // Update base state
   state = updateGameState(state, deltaTime);
 
+  // Update sector actions (doors, lifts, etc.)
+  if (state.map) {
+    state.sectorActionManager.update(state.map, deltaTime);
+  }
+
   // Update player
   state = updatePlayerLogic(state, deltaTime);
 
@@ -217,7 +225,129 @@ function updatePlayerLogic(state: DoomGameState, deltaTime: TimeSeconds): DoomGa
   // Check for item pickups
   state = checkItemPickups(state, newPlayer);
 
+  // Check for use action
+  if (isActionActive(state.input, InputAction.Use)) {
+    tryUseAction(state, newPlayer);
+  }
+
+  // Check for fire action
+  if (isActionActive(state.input, InputAction.Fire)) {
+    state = tryFireWeapon(state, newPlayer);
+  }
+
   return state;
+}
+
+/**
+ * Try to fire weapon
+ */
+function tryFireWeapon(state: DoomGameState, player: any): DoomGameState {
+  if (!state.map) return state;
+
+  // Check if player has ammo
+  const weaponType = player.currentWeapon as WeaponType;
+  const weaponDef = weaponDefs.get(weaponType);
+
+  if (!weaponDef) return state;
+
+  // Check ammo
+  if (weaponDef.ammoPerShot > 0) {
+    const ammoType = weaponDef.ammoType;
+    if (player.inventory.ammo[ammoType] < weaponDef.ammoPerShot) {
+      // Out of ammo
+      return state;
+    }
+
+    // Consume ammo
+    const newPlayer = { ...player };
+    newPlayer.inventory.ammo[ammoType] -= weaponDef.ammoPerShot;
+    state = updatePlayer(state, state.activePlayer, newPlayer);
+  }
+
+  // Fire hitscan weapon
+  const hitThing = fireHitscanWeapon(
+    weaponType,
+    player.position,
+    player.angle,
+    state.things,
+    state.map
+  );
+
+  if (hitThing) {
+    // Apply damage
+    const damage = calculateDamage(weaponDef);
+    applyDamage(hitThing, damage);
+    state = updateThing(state, hitThing.id, hitThing);
+  }
+
+  return state;
+}
+
+/**
+ * Try to use/activate something (doors, switches, etc.)
+ */
+function tryUseAction(state: DoomGameState, player: any): void {
+  if (!state.map) return;
+
+  const useRange = 64; // Use distance
+  const playerX = player.position.x;
+  const playerY = player.position.y;
+  const playerAngle = player.angle;
+
+  // Calculate ray direction
+  const rayDirX = Math.cos(playerAngle);
+  const rayDirY = Math.sin(playerAngle);
+
+  // Check linedefs in front of player
+  for (let i = 0; i < state.map.linedefs.length; i++) {
+    const linedef = state.map.linedefs[i];
+    if (linedef.specialType === 0) continue;
+
+    const v1 = state.map.vertices[linedef.startVertex];
+    const v2 = state.map.vertices[linedef.endVertex];
+
+    // Calculate distance to linedef
+    const lineX1 = v1.x;
+    const lineY1 = v1.y;
+    const lineX2 = v2.x;
+    const lineY2 = v2.y;
+
+    // Calculate closest point on line to player
+    const dx = lineX2 - lineX1;
+    const dy = lineY2 - lineY1;
+    const lineLength = Math.sqrt(dx * dx + dy * dy);
+
+    if (lineLength < 0.1) continue;
+
+    const t = Math.max(
+      0,
+      Math.min(
+        1,
+        ((playerX - lineX1) * dx + (playerY - lineY1) * dy) / (lineLength * lineLength)
+      )
+    );
+
+    const closestX = lineX1 + t * dx;
+    const closestY = lineY1 + t * dy;
+
+    const distX = closestX - playerX;
+    const distY = closestY - playerY;
+    const distance = Math.sqrt(distX * distX + distY * distY);
+
+    // Check if within use range
+    if (distance > useRange) continue;
+
+    // Check if facing the line
+    const toLineX = closestX - playerX;
+    const toLineY = closestY - playerY;
+    const dot = rayDirX * toLineX + rayDirY * toLineY;
+
+    if (dot > 0) {
+      // Activate the linedef
+      activateLinedef(state.map, i, state.sectorActionManager);
+      return; // Only activate one per use
+    }
+  }
 }
 
 /**
@@ -327,8 +457,33 @@ function pickupItem(state: DoomGameState, player: any, thing: any): DoomGameStat
 /**
  * Update things/entities
  */
-function updateThings(state: DoomGameState, _deltaTime: TimeSeconds): DoomGameState {
-  // TODO: Implement AI and entity updates
+function updateThings(state: DoomGameState, deltaTime: TimeSeconds): DoomGameState {
+  if (!state.map) return state;
+
+  const player = getActivePlayer(state);
+  if (!player) return state;
+
+  // Update each thing
+  for (let i = 0; i < state.things.length; i++) {
+    const thing = state.things[i];
+
+    // Update monster AI
+    const updatedThing = updateMonsterAI(thing, player, state.map, deltaTime);
+    if (updatedThing !== thing) {
+      state = updateThing(state, thing.id, updatedThing);
+    }
+
+    // Check if monster is attacking player
+    const dx = player.position.x - updatedThing.position.x;
+    const dy = player.position.y - updatedThing.position.y;
+    const distanceToPlayer = Math.sqrt(dx * dx + dy * dy);
+
+    const updatedPlayer = applyMonsterDamage(updatedThing, player, distanceToPlayer);
+    if (updatedPlayer !== player) {
+      state = updatePlayer(state, state.activePlayer, updatedPlayer);
+    }
+  }
+
   return state;
 }
 
