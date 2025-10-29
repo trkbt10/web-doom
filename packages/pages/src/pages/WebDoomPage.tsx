@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, DragEvent } from 'react';
-import { createDoomEngine, createCanvas2DRenderer, type DoomEngine } from '@web-doom/core';
+import { createDoomEngine, createCanvas3DRenderer, type DoomEngine } from '@web-doom/core';
 import { decode } from '@web-doom/wad';
 import './WebDoomPage.css';
 
@@ -9,8 +9,11 @@ function WebDoomPage() {
   const [error, setError] = useState<string>('');
   const [isDragging, setIsDragging] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState<string>('');
+  const [isRecording, setIsRecording] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recordedChunksRef = useRef<Blob[]>([]);
 
   useEffect(() => {
     // Try to load default WAD on mount
@@ -62,12 +65,12 @@ function WebDoomPage() {
     // Decode WAD file
     const wadFile = decode(arrayBuffer);
 
-    // Create renderer
-    const renderer = createCanvas2DRenderer(canvasRef.current);
+    // Create renderer (3D raycasting renderer)
+    const renderer = createCanvas3DRenderer(canvasRef.current);
     renderer.init({
       width: 640,
       height: 480,
-      scale: 0.1,
+      scale: 1,
     });
 
     // Create engine
@@ -144,11 +147,6 @@ function WebDoomPage() {
     if (engine && !isRunning) {
       engine.start();
       setIsRunning(true);
-
-      // Request pointer lock for mouse control
-      if (canvasRef.current) {
-        canvasRef.current.requestPointerLock();
-      }
     }
   };
 
@@ -156,18 +154,81 @@ function WebDoomPage() {
     if (engine && isRunning) {
       engine.stop();
       setIsRunning(false);
-
-      // Exit pointer lock
-      if (document.pointerLockElement) {
-        document.exitPointerLock();
-      }
     }
   };
 
   const handleCanvasClick = () => {
-    // Request pointer lock when canvas is clicked during gameplay
-    if (engine && isRunning && canvasRef.current && !document.pointerLockElement) {
-      canvasRef.current.requestPointerLock();
+    // Canvas click handler - no longer using pointer lock
+  };
+
+  const handleScreenshot = () => {
+    if (!canvasRef.current) return;
+
+    try {
+      // Capture canvas as PNG using web standard toBlob API
+      canvasRef.current.toBlob((blob) => {
+        if (!blob) return;
+
+        // Create download link
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `doom-screenshot-${Date.now()}.png`;
+        link.click();
+
+        // Cleanup
+        setTimeout(() => URL.revokeObjectURL(url), 100);
+      }, 'image/png');
+    } catch (err) {
+      console.error('Failed to capture screenshot:', err);
+      setError('Failed to capture screenshot');
+    }
+  };
+
+  const handleStartRecording = () => {
+    if (!canvasRef.current) return;
+
+    try {
+      // Capture canvas stream using web standard captureStream API
+      const stream = canvasRef.current.captureStream(30); // 30 FPS
+      const mediaRecorder = new MediaRecorder(stream, {
+        mimeType: 'video/webm;codecs=vp9',
+      });
+
+      recordedChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          recordedChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(recordedChunksRef.current, { type: 'video/webm' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `doom-recording-${Date.now()}.webm`;
+        link.click();
+
+        setTimeout(() => URL.revokeObjectURL(url), 100);
+        recordedChunksRef.current = [];
+      };
+
+      mediaRecorder.start();
+      mediaRecorderRef.current = mediaRecorder;
+      setIsRecording(true);
+    } catch (err) {
+      console.error('Failed to start recording:', err);
+      setError('Failed to start recording');
+    }
+  };
+
+  const handleStopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      mediaRecorderRef.current = null;
+      setIsRecording(false);
     }
   };
 
@@ -213,7 +274,7 @@ function WebDoomPage() {
               width={640}
               height={480}
               className="game-canvas"
-              style={{ border: '2px solid #333', background: '#000', cursor: isRunning ? 'none' : 'default' }}
+              style={{ border: '2px solid #333', background: '#000' }}
               onClick={handleCanvasClick}
             />
             {!engine && !error && (
@@ -273,18 +334,36 @@ function WebDoomPage() {
             </button>
           </div>
 
+          <div className="controls" style={{ marginTop: '10px' }}>
+            <button
+              onClick={handleScreenshot}
+              disabled={!engine}
+              className="control-button"
+              title="Capture screenshot as PNG"
+            >
+              Screenshot
+            </button>
+            <button
+              onClick={isRecording ? handleStopRecording : handleStartRecording}
+              disabled={!engine}
+              className="control-button"
+              style={{ background: isRecording ? '#cc0000' : '#0066cc' }}
+              title={isRecording ? 'Stop recording' : 'Start recording video'}
+            >
+              {isRecording ? 'Stop Recording' : 'Start Recording'}
+            </button>
+          </div>
+
           <div className="game-info">
             <h3>Controls</h3>
             <ul>
               <li><strong>Arrow Keys / WASD:</strong> Move forward/backward, turn/strafe left/right</li>
-              <li><strong>Mouse:</strong> Look around (click canvas to lock pointer)</li>
               <li><strong>Space / E:</strong> Use/Open doors</li>
-              <li><strong>Ctrl / Left Click:</strong> Fire weapon</li>
+              <li><strong>Ctrl:</strong> Fire weapon</li>
               <li><strong>Shift:</strong> Run</li>
-              <li><strong>ESC:</strong> Release mouse pointer</li>
             </ul>
             <p className="info-note">
-              Note: This is a work-in-progress implementation using a 2D top-down renderer. Not all features are complete.
+              Note: This is a work-in-progress implementation using a 3D raycasting renderer. Not all features are complete.
             </p>
           </div>
         </div>
