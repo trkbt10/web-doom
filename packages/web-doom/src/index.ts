@@ -203,6 +203,7 @@ function findPlayerStart(
 export * from './types';
 export * from './game-state';
 export * from './renderer';
+export * from './renderers';
 export * from './map/types';
 export * from './map/parser';
 export * from './player/types';

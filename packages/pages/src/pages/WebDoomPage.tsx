@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect, DragEvent } from 'react';
-import { createDoomEngine, type DoomEngine } from '@web-doom/core';
+import { createDoomEngine, createCanvas2DRenderer, type DoomEngine } from '@web-doom/core';
 import { decode } from '@web-doom/wad';
-import { createCanvas2DRenderer } from '@web-doom/core';
 import './WebDoomPage.css';
 
 function WebDoomPage() {
