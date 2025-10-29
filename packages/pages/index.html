@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Web DOOM - Preview</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Courier New', monospace;
+      background: #000;
+      color: #0f0;
+      padding: 20px;
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      color: #f00;
+      font-size: 3rem;
+      margin-bottom: 20px;
+      text-shadow: 2px 2px #600;
+    }
+
+    .links {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      margin-top: 40px;
+    }
+
+    .link-card {
+      background: #111;
+      border: 2px solid #0f0;
+      padding: 20px;
+      text-decoration: none;
+      color: #0f0;
+      transition: all 0.3s;
+    }
+
+    .link-card:hover {
+      background: #0f0;
+      color: #000;
+      border-color: #0f0;
+    }
+
+    .link-card h2 {
+      margin-bottom: 10px;
+    }
+
+    .link-card p {
+      opacity: 0.8;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>WEB DOOM</h1>
+    <p>DOOM ported to the web using TypeScript and Canvas API</p>
+
+    <div class="links">
+      <a href="./wad-viewer.html" class="link-card">
+        <h2>WAD Viewer</h2>
+        <p>View and analyze DOOM WAD files</p>
+      </a>
+
+      <a href="./web-doom.html" class="link-card">
+        <h2>Web DOOM</h2>
+        <p>Play DOOM in your browser</p>
+      </a>
+    </div>
+  </div>
+</body>
+</html>

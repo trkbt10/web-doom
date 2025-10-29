@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Web DOOM</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Courier New', monospace;
+      background: #000;
+      color: #0f0;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    h1 {
+      color: #f00;
+      margin-bottom: 20px;
+    }
+
+    .back-link {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      color: #0f0;
+      text-decoration: none;
+    }
+
+    .back-link:hover {
+      text-decoration: underline;
+    }
+
+    #gameCanvas {
+      border: 2px solid #0f0;
+      background: #000;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+    }
+
+    .controls {
+      margin-top: 20px;
+      background: #111;
+      border: 2px solid #0f0;
+      padding: 20px;
+    }
+
+    .upload-area {
+      border: 2px dashed #0f0;
+      padding: 40px;
+      text-align: center;
+      margin-bottom: 20px;
+      cursor: pointer;
+    }
+
+    .upload-area:hover {
+      background: #111;
+    }
+
+    button {
+      background: #0f0;
+      color: #000;
+      border: none;
+      padding: 10px 20px;
+      font-family: 'Courier New', monospace;
+      font-weight: bold;
+      cursor: pointer;
+      margin: 5px;
+    }
+
+    button:hover {
+      background: #0c0;
+    }
+
+    button:disabled {
+      background: #555;
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+<body>
+  <a href="./" class="back-link">← Back</a>
+  <h1>WEB DOOM</h1>
+
+  <div class="upload-area" id="uploadArea">
+    <p>Click or drag WAD file here to start</p>
+    <input type="file" id="fileInput" accept=".wad" style="display: none;">
+  </div>
+
+  <canvas id="gameCanvas" width="320" height="200" style="display: none;"></canvas>
+
+  <div class="controls" id="controls" style="display: none;">
+    <button id="startBtn">Start</button>
+    <button id="stopBtn" disabled>Stop</button>
+  </div>
+
+  <script type="module" src="/src/web-doom.ts"></script>
+</body>
+</html>
