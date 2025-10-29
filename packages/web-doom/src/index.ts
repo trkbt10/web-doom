@@ -211,3 +211,4 @@ export * from './entities/types';
 export * from './input/input';
 export * from './physics/collision';
 export * from './game-loop';
+export * from './graphics';

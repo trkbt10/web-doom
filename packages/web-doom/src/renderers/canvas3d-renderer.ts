@@ -13,6 +13,8 @@ import type { Vec2, Vec3 } from '../types';
 import type { Sector, Linedef, Sidedef } from '../map/types';
 import type { Thing } from '../entities/types';
 import type { Angle } from '../types';
+import type { WadFile } from '@web-doom/wad';
+import { TextureManager, SpriteManager } from '../graphics';
 
 interface WallSlice {
   x: number;
@@ -20,6 +22,7 @@ interface WallSlice {
   distance: number;
   color: string;
   texture: string;
+  textureCanvas: HTMLCanvasElement | null;
   lightLevel: number;
 }
 
@@ -33,8 +36,10 @@ export class Canvas3DRenderer implements Renderer {
   private options: RenderOptions;
   private camera: Camera | null = null;
   private wallSlices: WallSlice[] = [];
+  private textureManager: TextureManager | null = null;
+  private spriteManager: SpriteManager | null = null;
 
-  constructor(canvas: HTMLCanvasElement) {
+  constructor(canvas: HTMLCanvasElement, wad?: WadFile) {
     this.canvas = canvas;
     const ctx = canvas.getContext('2d');
     if (!ctx) {
@@ -46,6 +51,28 @@ export class Canvas3DRenderer implements Renderer {
       height: canvas.height,
       scale: 1,
     };
+
+    // Initialize texture and sprite managers if WAD provided
+    if (wad) {
+      this.textureManager = new TextureManager(wad);
+      this.spriteManager = new SpriteManager(wad);
+
+      // Preload common assets
+      this.textureManager.preloadCommonTextures().catch((err) => {
+        console.warn('Failed to preload textures:', err);
+      });
+      this.spriteManager.preloadCommonSprites().catch((err) => {
+        console.warn('Failed to preload sprites:', err);
+      });
+    }
+  }
+
+  /**
+   * Set WAD file for texture/sprite loading
+   */
+  setWad(wad: WadFile): void {
+    this.textureManager = new TextureManager(wad);
+    this.spriteManager = new SpriteManager(wad);
   }
 
   init(options: RenderOptions): void {
@@ -127,6 +154,15 @@ export class Canvas3DRenderer implements Renderer {
       // Calculate wall height on screen
       const wallScreenHeight = (height / camY) * (this.canvas.height / 2);
 
+      // Get texture canvas
+      let textureCanvas: HTMLCanvasElement | null = null;
+      if (this.textureManager) {
+        const textureData = this.textureManager.getTexture(textureName);
+        if (textureData) {
+          textureCanvas = textureData.canvas;
+        }
+      }
+
       // Store wall slice for sorting and rendering
       this.wallSlices.push({
         x: Math.floor(screenX),
@@ -134,6 +170,7 @@ export class Canvas3DRenderer implements Renderer {
         distance: camY,
         color: this.getTextureColor(textureName),
         texture: textureName,
+        textureCanvas,
         lightLevel: 160,
       });
     }
@@ -174,7 +211,44 @@ export class Canvas3DRenderer implements Renderer {
     // Skip if outside screen bounds
     if (screenX + spriteSize / 2 < 0 || screenX - spriteSize / 2 >= this.canvas.width) return;
 
-    // Draw sprite as a colored circle (placeholder)
+    // Try to get sprite from sprite manager
+    if (this.spriteManager) {
+      // Get sprite name from thing sprite and frame
+      const spriteName = this.spriteManager.getSpriteFrameName(
+        thing.sprite,
+        String.fromCharCode(65 + thing.frame), // Convert frame number to letter
+        0 // No rotation for now
+      );
+
+      const spriteData = this.spriteManager.getSprite(spriteName);
+      if (spriteData) {
+        // Apply distance-based shading
+        const shade = Math.max(0.3, Math.min(1, 1 - camY / 1000));
+
+        // Save context for transformations
+        this.ctx.save();
+        this.ctx.globalAlpha = shade;
+
+        // Draw sprite with proper centering
+        const drawWidth = spriteSize;
+        const drawHeight = (spriteData.height / spriteData.width) * spriteSize;
+        const drawX = screenX - drawWidth / 2;
+        const drawY = this.canvas.height / 2 - drawHeight / 2;
+
+        this.ctx.drawImage(
+          spriteData.canvas,
+          drawX,
+          drawY,
+          drawWidth,
+          drawHeight
+        );
+
+        this.ctx.restore();
+        return;
+      }
+    }
+
+    // Fallback: Draw sprite as a colored circle
     this.ctx.fillStyle = '#ff0000';
     this.ctx.beginPath();
     this.ctx.arc(screenX, this.canvas.height / 2, spriteSize / 2, 0, Math.PI * 2);
@@ -273,11 +347,35 @@ export class Canvas3DRenderer implements Renderer {
 
       // Apply distance-based shading
       const shade = Math.max(0.2, Math.min(1, 1 - slice.distance / 800));
-      const color = this.shadeColor(slice.color, shade);
 
-      // Draw wall slice
-      this.ctx.fillStyle = color;
-      this.ctx.fillRect(x, y, 1, wallHeight);
+      // Draw wall slice with texture if available
+      if (slice.textureCanvas) {
+        this.ctx.save();
+        this.ctx.globalAlpha = shade;
+
+        // Sample from texture
+        const textureX = Math.floor(slice.x % slice.textureCanvas.width);
+
+        // Draw textured column
+        this.ctx.drawImage(
+          slice.textureCanvas,
+          textureX, // Source X
+          0, // Source Y
+          1, // Source width (1 pixel column)
+          slice.textureCanvas.height, // Source height
+          x, // Dest X
+          y, // Dest Y
+          1, // Dest width
+          wallHeight // Dest height (stretch to fit wall height)
+        );
+
+        this.ctx.restore();
+      } else {
+        // Fallback to colored column
+        const color = this.shadeColor(slice.color, shade);
+        this.ctx.fillStyle = color;
+        this.ctx.fillRect(x, y, 1, wallHeight);
+      }
 
       // Mark column as rendered
       renderedColumns.add(x);
@@ -290,6 +388,12 @@ export class Canvas3DRenderer implements Renderer {
 
   dispose(): void {
     this.wallSlices = [];
+    if (this.textureManager) {
+      this.textureManager.dispose();
+    }
+    if (this.spriteManager) {
+      this.spriteManager.dispose();
+    }
   }
 
   /**
@@ -326,6 +430,6 @@ export class Canvas3DRenderer implements Renderer {
 /**
  * Create a Canvas 3D raycasting renderer
  */
-export function createCanvas3DRenderer(canvas: HTMLCanvasElement): Renderer {
-  return new Canvas3DRenderer(canvas);
+export function createCanvas3DRenderer(canvas: HTMLCanvasElement, wad?: WadFile): Renderer {
+  return new Canvas3DRenderer(canvas, wad);
 }
