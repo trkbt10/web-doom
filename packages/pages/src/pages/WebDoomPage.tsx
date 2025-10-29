@@ -1,11 +1,7 @@
 import { useState, useRef, useEffect, DragEvent } from 'react';
-import { DoomEngine } from '@web-doom/core';
+import { type DoomEngine } from '@web-doom/core';
+import { decode } from '@web-doom/wad';
 import './WebDoomPage.css';
-
-interface DoomConfig {
-  canvas: HTMLCanvasElement;
-  wadFile: ArrayBuffer;
-}
 
 function WebDoomPage() {
   const [engine, setEngine] = useState<DoomEngine | null>(null);
@@ -18,7 +14,7 @@ function WebDoomPage() {
   useEffect(() => {
     return () => {
       if (engine) {
-        engine.stop();
+        engine.dispose();
       }
     };
   }, [engine]);
@@ -32,15 +28,12 @@ function WebDoomPage() {
         throw new Error('Canvas not ready');
       }
 
-      const config: DoomConfig = {
-        canvas: canvasRef.current,
-        wadFile: arrayBuffer,
-      };
+      // Decode WAD file to validate it
+      decode(arrayBuffer);
 
-      const newEngine = new DoomEngine(config);
-      newEngine.init();
-
-      setEngine(newEngine);
+      // TODO: Implement proper renderer and engine initialization
+      // For now, this is a placeholder to prevent type errors
+      throw new Error('Engine initialization not yet implemented. Please use the WAD Viewer for now.');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load WAD file');
       setEngine(null);

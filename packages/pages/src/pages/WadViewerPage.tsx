@@ -137,7 +137,7 @@ function WadViewerPage() {
                 <div className="validation-errors">
                   <h3>Errors:</h3>
                   <ul>
-                    {validation.errors.map((error, index) => (
+                    {validation.errors.map((error: string, index: number) => (
                       <li key={index}>{error}</li>
                     ))}
                   </ul>
@@ -147,7 +147,7 @@ function WadViewerPage() {
                 <div className="validation-warnings">
                   <h3>Warnings:</h3>
                   <ul>
-                    {validation.warnings.map((warning, index) => (
+                    {validation.warnings.map((warning: string, index: number) => (
                       <li key={index}>{warning}</li>
                     ))}
                   </ul>
@@ -165,7 +165,7 @@ function WadViewerPage() {
             <section className="info-section">
               <h2>Lumps ({wadFile.lumps.length})</h2>
               <div className="lumps-list">
-                {wadFile.lumps.map((lump, index) => (
+                {wadFile.lumps.map((lump: any, index: number) => (
                   <div key={index} className="lump-item">
                     <span className="lump-name">{lump.name}</span>
                     <span className="lump-size">{lump.size} bytes</span>
