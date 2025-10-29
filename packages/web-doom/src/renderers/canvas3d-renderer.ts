@@ -10,20 +10,19 @@ import type {
   HUDData,
 } from '../renderer';
 import type { Vec2, Vec3 } from '../types';
-import type { Sector, Linedef, Sidedef } from '../map/types';
+import type { Sector, Linedef, Sidedef, MapData, Vertex } from '../map/types';
 import type { Thing } from '../entities/types';
 import type { Angle } from '../types';
 import type { WadFile } from '@web-doom/wad';
 import { TextureManager, SpriteManager } from '../graphics';
 
-interface WallSlice {
-  x: number;
-  height: number;
+interface WallHit {
   distance: number;
-  color: string;
-  texture: string;
-  textureCanvas: HTMLCanvasElement | null;
+  wallHeight: number;
+  textureName: string;
+  textureX: number;
   lightLevel: number;
+  textureCanvas: HTMLCanvasElement | null;
 }
 
 /**
@@ -35,9 +34,10 @@ export class Canvas3DRenderer implements Renderer {
   private ctx: CanvasRenderingContext2D;
   private options: RenderOptions;
   private camera: Camera | null = null;
-  private wallSlices: WallSlice[] = [];
+  private mapData: MapData | null = null;
   private textureManager: TextureManager | null = null;
   private spriteManager: SpriteManager | null = null;
+  private zBuffer: number[] = []; // For sprite rendering
 
   constructor(canvas: HTMLCanvasElement, wad?: WadFile) {
     this.canvas = canvas;
@@ -75,15 +75,23 @@ export class Canvas3DRenderer implements Renderer {
     this.spriteManager = new SpriteManager(wad);
   }
 
+  /**
+   * Set map data for raycasting
+   */
+  setMapData(mapData: MapData | null): void {
+    this.mapData = mapData;
+  }
+
   init(options: RenderOptions): void {
     this.options = options;
     this.canvas.width = options.width;
     this.canvas.height = options.height;
+    this.zBuffer = new Array(options.width).fill(Infinity);
   }
 
   beginFrame(): void {
     this.ctx.save();
-    this.wallSlices = [];
+    this.zBuffer.fill(Infinity);
   }
 
   endFrame(): void {
@@ -111,69 +119,8 @@ export class Canvas3DRenderer implements Renderer {
     textureName: string,
     sidedef: Sidedef
   ): void {
-    if (!this.camera) return;
-
-    // Transform wall endpoints to camera space
-    const start3d: Vec3 = { x: start.x, y: start.y, z: 0 };
-    const end3d: Vec3 = { x: end.x, y: end.y, z: 0 };
-
-    // Calculate vectors
-    const dx = end.x - start.x;
-    const dy = end.y - start.y;
-    const wallLength = Math.sqrt(dx * dx + dy * dy);
-
-    if (wallLength < 0.1) return;
-
-    // Sample points along the wall for rendering
-    const numSamples = Math.max(1, Math.floor(wallLength / 32));
-
-    for (let i = 0; i <= numSamples; i++) {
-      const t = i / numSamples;
-      const px = start.x + dx * t;
-      const py = start.y + dy * t;
-
-      // Transform to camera space
-      const relX = px - this.camera.position.x;
-      const relY = py - this.camera.position.y;
-
-      // Rotate to camera view
-      const cos = Math.cos(-this.camera.angle);
-      const sin = Math.sin(-this.camera.angle);
-      const camX = relX * cos - relY * sin;
-      const camY = relX * sin + relY * cos;
-
-      // Skip if behind camera
-      if (camY <= 0.1) continue;
-
-      // Project to screen space
-      const screenX = (camX / camY) * (this.canvas.width / 2) + this.canvas.width / 2;
-
-      // Skip if outside screen bounds
-      if (screenX < 0 || screenX >= this.canvas.width) continue;
-
-      // Calculate wall height on screen
-      const wallScreenHeight = (height / camY) * (this.canvas.height / 2);
-
-      // Get texture canvas
-      let textureCanvas: HTMLCanvasElement | null = null;
-      if (this.textureManager) {
-        const textureData = this.textureManager.getTexture(textureName);
-        if (textureData) {
-          textureCanvas = textureData.canvas;
-        }
-      }
-
-      // Store wall slice for sorting and rendering
-      this.wallSlices.push({
-        x: Math.floor(screenX),
-        height: wallScreenHeight,
-        distance: camY,
-        color: this.getTextureColor(textureName),
-        texture: textureName,
-        textureCanvas,
-        lightLevel: 160,
-      });
-    }
+    // This method is now a no-op for Canvas3DRenderer
+    // Actual rendering happens in render3DView()
   }
 
   renderFloor(sector: Sector, vertices: Vec2[]): void {
@@ -210,6 +157,20 @@ export class Canvas3DRenderer implements Renderer {
 
     // Skip if outside screen bounds
     if (screenX + spriteSize / 2 < 0 || screenX - spriteSize / 2 >= this.canvas.width) return;
+
+    // Check z-buffer for occlusion
+    const spriteScreenLeft = Math.floor(Math.max(0, screenX - spriteSize / 2));
+    const spriteScreenRight = Math.floor(Math.min(this.canvas.width - 1, screenX + spriteSize / 2));
+
+    let visible = false;
+    for (let x = spriteScreenLeft; x <= spriteScreenRight; x++) {
+      if (camY < this.zBuffer[x]) {
+        visible = true;
+        break;
+      }
+    }
+
+    if (!visible) return;
 
     // Try to get sprite from sprite manager
     if (this.spriteManager) {
@@ -293,6 +254,12 @@ export class Canvas3DRenderer implements Renderer {
   }
 
   renderHUD(data: HUDData): void {
+    // First, render the 3D view if we have map data
+    if (this.mapData && this.camera) {
+      this.render3DView();
+    }
+
+    // Then render HUD on top
     const padding = 10;
     const fontSize = 14;
 
@@ -325,61 +292,187 @@ export class Canvas3DRenderer implements Renderer {
       this.ctx.fillText(data.message, this.canvas.width / 2, padding);
       this.ctx.textAlign = 'left';
     }
-
-    // Render collected wall slices
-    this.renderWallSlices();
   }
 
-  private renderWallSlices(): void {
-    // Sort slices by distance (back to front for proper occlusion)
-    this.wallSlices.sort((a, b) => b.distance - a.distance);
+  /**
+   * Render the 3D view using raycasting
+   */
+  private render3DView(): void {
+    if (!this.camera || !this.mapData) return;
 
-    // Track which x-coordinates have been rendered (for basic occlusion)
-    const renderedColumns = new Set<number>();
+    const { width, height } = this.canvas;
+    const fov = this.camera.fov || Math.PI / 2; // 90 degrees default
 
-    for (const slice of this.wallSlices) {
-      // Skip if this column was already rendered by a closer wall
-      if (renderedColumns.has(slice.x)) continue;
+    // Cast a ray for each vertical stripe on screen
+    for (let x = 0; x < width; x++) {
+      // Calculate ray angle
+      // x = 0 should be left edge of FOV, x = width should be right edge
+      const cameraX = (2 * x / width) - 1; // -1 to 1
+      const rayAngle = this.camera.angle + Math.atan(cameraX * Math.tan(fov / 2));
 
-      const x = slice.x;
-      const wallHeight = Math.min(slice.height, this.canvas.height * 2);
-      const y = (this.canvas.height - wallHeight) / 2;
+      // Cast ray
+      const hit = this.castRay(rayAngle);
 
-      // Apply distance-based shading
-      const shade = Math.max(0.2, Math.min(1, 1 - slice.distance / 800));
+      if (hit) {
+        // Store distance in z-buffer for sprite rendering
+        this.zBuffer[x] = hit.distance;
 
-      // Draw wall slice with texture if available
-      if (slice.textureCanvas) {
-        this.ctx.save();
-        this.ctx.globalAlpha = shade;
+        // Calculate wall screen height
+        const wallScreenHeight = Math.min(hit.wallHeight / hit.distance * (height / 2), height * 3);
+        const wallTop = (height - wallScreenHeight) / 2;
+        const wallBottom = wallTop + wallScreenHeight;
 
-        // Sample from texture
-        const textureX = Math.floor(slice.x % slice.textureCanvas.width);
+        // Apply distance-based shading
+        const shade = Math.max(0.2, Math.min(1, 1 - hit.distance / 800));
 
-        // Draw textured column
-        this.ctx.drawImage(
-          slice.textureCanvas,
-          textureX, // Source X
-          0, // Source Y
-          1, // Source width (1 pixel column)
-          slice.textureCanvas.height, // Source height
-          x, // Dest X
-          y, // Dest Y
-          1, // Dest width
-          wallHeight // Dest height (stretch to fit wall height)
-        );
+        // Draw wall slice
+        if (hit.textureCanvas) {
+          this.ctx.save();
+          this.ctx.globalAlpha = shade;
 
-        this.ctx.restore();
-      } else {
-        // Fallback to colored column
-        const color = this.shadeColor(slice.color, shade);
-        this.ctx.fillStyle = color;
-        this.ctx.fillRect(x, y, 1, wallHeight);
+          // Draw textured column
+          this.ctx.drawImage(
+            hit.textureCanvas,
+            hit.textureX, // Source X
+            0, // Source Y
+            1, // Source width (1 pixel column)
+            hit.textureCanvas.height, // Source height
+            x, // Dest X
+            wallTop, // Dest Y
+            1, // Dest width
+            wallScreenHeight // Dest height (stretch to fit wall height)
+          );
+
+          this.ctx.restore();
+        } else {
+          // Fallback to colored column
+          const color = this.getTextureColor(hit.textureName);
+          const shadedColor = this.shadeColor(color, shade);
+          this.ctx.fillStyle = shadedColor;
+          this.ctx.fillRect(x, wallTop, 1, wallScreenHeight);
+        }
       }
-
-      // Mark column as rendered
-      renderedColumns.add(x);
     }
+  }
+
+  /**
+   * Cast a single ray and find the nearest wall intersection
+   */
+  private castRay(rayAngle: number): WallHit | null {
+    if (!this.camera || !this.mapData) return null;
+
+    const rayDirX = Math.cos(rayAngle);
+    const rayDirY = Math.sin(rayAngle);
+    const rayOriginX = this.camera.position.x;
+    const rayOriginY = this.camera.position.y;
+
+    let closestHit: WallHit | null = null;
+    let closestDistance = Infinity;
+
+    // Check intersection with all linedefs
+    for (const linedef of this.mapData.linedefs) {
+      // Skip if no right sidedef (void)
+      if (linedef.rightSidedef < 0) continue;
+
+      const v1 = this.mapData.vertices[linedef.startVertex];
+      const v2 = this.mapData.vertices[linedef.endVertex];
+
+      // Calculate intersection
+      const intersection = this.rayLineIntersection(
+        rayOriginX, rayOriginY, rayDirX, rayDirY,
+        v1.x, v1.y, v2.x, v2.y
+      );
+
+      if (intersection && intersection.distance < closestDistance) {
+        // Get sidedef and sector info
+        const sidedef = this.mapData.sidedefs[linedef.rightSidedef];
+        const sector = this.mapData.sectors[sidedef.sector];
+
+        // Calculate wall height
+        const wallHeight = sector.ceilingHeight - sector.floorHeight;
+
+        // Get texture
+        const textureName = sidedef.middleTexture || sidedef.upperTexture || 'GRAY';
+        let textureCanvas: HTMLCanvasElement | null = null;
+
+        if (this.textureManager) {
+          const textureData = this.textureManager.getTexture(textureName);
+          if (textureData) {
+            textureCanvas = textureData.canvas;
+          }
+        }
+
+        // Calculate texture X coordinate
+        const wallLength = Math.sqrt((v2.x - v1.x) ** 2 + (v2.y - v1.y) ** 2);
+        const hitWallT = intersection.wallT;
+        const textureWidth = textureCanvas ? textureCanvas.width : 64;
+        const textureX = Math.floor((hitWallT * wallLength) % textureWidth);
+
+        closestDistance = intersection.distance;
+        closestHit = {
+          distance: intersection.distance,
+          wallHeight,
+          textureName,
+          textureX,
+          lightLevel: sector.lightLevel,
+          textureCanvas,
+        };
+      }
+    }
+
+    return closestHit;
+  }
+
+  /**
+   * Calculate ray-line intersection
+   * Returns distance along ray and position along wall (t parameter)
+   */
+  private rayLineIntersection(
+    rayX: number, rayY: number, rayDirX: number, rayDirY: number,
+    lineX1: number, lineY1: number, lineX2: number, lineY2: number
+  ): { distance: number; wallT: number } | null {
+    const lineDirX = lineX2 - lineX1;
+    const lineDirY = lineY2 - lineY1;
+
+    // Calculate denominator for intersection formula
+    const denominator = rayDirX * lineDirY - rayDirY * lineDirX;
+
+    // Lines are parallel
+    if (Math.abs(denominator) < 0.0001) return null;
+
+    // Calculate t parameters
+    const dx = lineX1 - rayX;
+    const dy = lineY1 - rayY;
+
+    const t1 = (dx * lineDirY - dy * lineDirX) / denominator; // Distance along ray
+    const t2 = (dx * rayDirY - dy * rayDirX) / denominator; // Position along line
+
+    // Check if intersection is valid
+    if (t1 <= 0) return null; // Behind ray origin
+    if (t2 < 0 || t2 > 1) return null; // Outside line segment
+
+    // Calculate actual distance
+    const intersectX = rayX + t1 * rayDirX;
+    const intersectY = rayY + t1 * rayDirY;
+
+    const dx2 = intersectX - rayX;
+    const dy2 = intersectY - rayY;
+    const distance = Math.sqrt(dx2 * dx2 + dy2 * dy2);
+
+    // Apply fish-eye correction (perpendicular distance to camera plane)
+    // Project the ray direction onto the camera forward vector
+    const cameraForwardX = Math.cos(this.camera!.angle);
+    const cameraForwardY = Math.sin(this.camera!.angle);
+    const dotProduct = rayDirX * cameraForwardX + rayDirY * cameraForwardY;
+    const correctedDistance = distance * dotProduct;
+
+    // Ensure distance is positive
+    if (correctedDistance <= 0) return null;
+
+    return {
+      distance: correctedDistance,
+      wallT: t2,
+    };
   }
 
   getRenderTarget(): HTMLCanvasElement {
@@ -387,7 +480,6 @@ export class Canvas3DRenderer implements Renderer {
   }
 
   dispose(): void {
-    this.wallSlices = [];
     if (this.textureManager) {
       this.textureManager.dispose();
     }

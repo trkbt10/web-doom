@@ -248,6 +248,11 @@ function render(state: DoomGameState, renderer: Renderer): void {
     fov: Math.PI / 2, // 90 degrees
   });
 
+  // Pass map data to renderer if it supports it (for Canvas3DRenderer)
+  if ('setMapData' in renderer && typeof renderer.setMapData === 'function') {
+    renderer.setMapData(state.map);
+  }
+
   // Render world
   renderWorld(state, renderer);
 
