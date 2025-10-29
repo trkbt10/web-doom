@@ -10,9 +10,9 @@
   "scripts": {
     "dev": "bun run --filter \"./packages/*\" dev",
     "build": "bun run build:libs && bun run build:pages",
-    "build:libs": "bun run --filter @web-doom/wad build && bun run --filter @web-doom/game-controller build && bun run --filter @web-doom/core build && bun run --filter @web-doom/wad-viewer build",
+    "build:libs": "bun run --filter @web-doom/wad build && bun run --filter @web-doom/game-controller build && bun run --filter @web-doom/core build && bun run --filter @web-doom/wad-viewer build && bun run --filter @web-doom/texture-transformer build",
     "build:pages": "bun run --filter @web-doom/pages build",
-    "typecheck": "tsgo --noEmit -p packages/wad && tsgo --noEmit -p packages/game-controller && tsgo --noEmit -p packages/web-doom && tsgo --noEmit -p packages/wad-viewer && tsgo --noEmit -p packages/pages",
+    "typecheck": "tsgo --noEmit -p packages/wad && tsgo --noEmit -p packages/game-controller && tsgo --noEmit -p packages/web-doom && tsgo --noEmit -p packages/wad-viewer && tsgo --noEmit -p packages/texture-transformer && tsgo --noEmit -p packages/pages",
     "test": "bun run --filter \"./packages/*\" test",
     "lint": "bun run typecheck",
     "clean": "rm -rf packages/*/dist packages/*/tsconfig.tsbuildinfo node_modules bun.lockb"
