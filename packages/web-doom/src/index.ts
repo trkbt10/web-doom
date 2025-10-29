@@ -4,8 +4,8 @@
  */
 
 import { WadFile } from '@web-doom/wad';
-import { parseMap, getMapNames } from './map/parser';
-import { createGameState, setMap, addPlayer, GameState } from './game-state';
+import { parseMap, getMapNames, parseThings } from './map/parser';
+import { createGameState, setMap, addPlayer, addThing, GameState } from './game-state';
 import type { DoomGameState } from './game-state';
 import { createPlayer } from './player/types';
 import { initInput } from './input/input';
@@ -14,7 +14,8 @@ import { createGameLoop } from './game-loop';
 import type { GameLoopConfig } from './game-loop';
 import { Difficulty, GameMode } from './types';
 import type { Renderer } from './renderer';
-import { ThingType } from './entities/types';
+import { ThingType, getThingDef, ThingState } from './entities/types';
+import type { Thing } from './entities/types';
 
 /**
  * DOOM Engine instance
@@ -100,6 +101,10 @@ export async function createDoomEngine(config: CreateDoomEngineConfig): Promise<
     if (map) {
       gameState = setMap(gameState, map);
 
+      // Load things from map
+      const thingsData = parseThings(config.wad, config.initialMap);
+      gameState = loadThingsIntoGame(gameState, thingsData);
+
       // Find player start
       const playerStart = findPlayerStart(config.wad, config.initialMap);
       if (playerStart) {
@@ -123,6 +128,10 @@ export async function createDoomEngine(config: CreateDoomEngineConfig): Promise<
       }
 
       gameState = setMap(gameState, map);
+
+      // Load things from map
+      const thingsData = parseThings(config.wad, mapName);
+      gameState = loadThingsIntoGame(gameState, thingsData);
 
       // Find player start
       const playerStart = findPlayerStart(config.wad, mapName);
@@ -163,36 +172,76 @@ export async function createDoomEngine(config: CreateDoomEngineConfig): Promise<
 }
 
 /**
+ * Load things from raw thing data into game state
+ */
+function loadThingsIntoGame(
+  state: DoomGameState,
+  thingsData: Array<{ x: number; y: number; angle: number; type: number; flags: number }>
+): DoomGameState {
+  let nextThingId = 1;
+
+  for (const thingData of thingsData) {
+    // Skip player starts
+    if (
+      thingData.type === ThingType.Player1Start ||
+      thingData.type === ThingType.Player2Start ||
+      thingData.type === ThingType.Player3Start ||
+      thingData.type === ThingType.Player4Start ||
+      thingData.type === ThingType.DeathmatchStart
+    ) {
+      continue;
+    }
+
+    // Get thing definition
+    const def = getThingDef(thingData.type as ThingType);
+    if (!def) {
+      // Unknown thing type, skip
+      continue;
+    }
+
+    // Convert angle from degrees to radians
+    const angleRad = (thingData.angle * Math.PI) / 180;
+
+    // Create thing
+    const thing: Thing = {
+      id: nextThingId++,
+      type: thingData.type as ThingType,
+      position: { x: thingData.x, y: thingData.y, z: 0 },
+      angle: angleRad,
+      velocity: { x: 0, y: 0, z: 0 },
+      state: ThingState.Idle,
+      flags: thingData.flags,
+      health: def.health,
+      radius: def.radius,
+      height: def.height,
+      sprite: def.sprite,
+      frame: 0,
+      tics: 0,
+      threshold: 0,
+      moveDir: 0,
+      moveCount: 0,
+    };
+
+    state = addThing(state, thing);
+  }
+
+  return state;
+}
+
+/**
  * Find player start position in a map
  */
 function findPlayerStart(
   wad: WadFile,
   mapName: string
 ): { x: number; y: number; angle: number } | null {
-  const map = parseMap(wad, mapName);
-  if (!map) return null;
+  const thingsData = parseThings(wad, mapName);
 
-  // Parse THINGS lump to find player start
-  const mapIndex = wad.lumps.findIndex((lump: { name: string }) => lump.name === mapName);
-  if (mapIndex === -1) return null;
-
-  const thingsLump = wad.lumps[mapIndex + 1]; // THINGS is first after map marker
-  if (!thingsLump || !thingsLump.name.startsWith('THINGS')) return null;
-
-  const data = new DataView(thingsLump.data);
-  const thingCount = thingsLump.size / 10; // Each thing is 10 bytes
-
-  for (let i = 0; i < thingCount; i++) {
-    const offset = i * 10;
-    const x = data.getInt16(offset, true);
-    const y = data.getInt16(offset + 2, true);
-    const angle = data.getInt16(offset + 4, true);
-    const type = data.getInt16(offset + 6, true);
-
-    if (type === ThingType.Player1Start) {
+  for (const thingData of thingsData) {
+    if (thingData.type === ThingType.Player1Start) {
       // Convert DOOM angle (0-359) to radians
-      const radians = (angle * Math.PI) / 180;
-      return { x, y, angle: radians };
+      const radians = (thingData.angle * Math.PI) / 180;
+      return { x: thingData.x, y: thingData.y, angle: radians };
     }
   }
 
@@ -212,3 +261,9 @@ export * from './input/input';
 export * from './physics/collision';
 export * from './game-loop';
 export * from './graphics';
+export * from './weapons/weapon-system';
+export * from './weapons/weapon-hud';
+export * from './effects/particle-system';
+export * from './save-system';
+export * from './map/sector-actions';
+export * from './ai/monster-ai';
