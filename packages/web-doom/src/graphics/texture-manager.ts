@@ -98,6 +98,12 @@ export class TextureManager {
       return null;
     }
 
+    // Check if lump has any data
+    if (lump.size === 0) {
+      console.warn(`Texture ${name} has no data`);
+      return null;
+    }
+
     try {
       // Try to decode as DOOM picture format
       const picture = decodePicture(lump.data);
@@ -113,7 +119,20 @@ export class TextureManager {
         height: canvas.height,
       };
     } catch (error) {
-      console.warn(`Failed to load texture ${name}:`, error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+
+      // Check if this might be a composite texture (defined in TEXTURE1/TEXTURE2)
+      if (errorMessage.includes('Invalid picture width') ||
+          errorMessage.includes('Invalid picture height') ||
+          errorMessage.includes('Buffer too small')) {
+        console.warn(
+          `Failed to load texture ${name}: ${errorMessage}\n` +
+          `This texture might be a composite texture (TEXTURE1/TEXTURE2) ` +
+          `which is not yet supported. Skipping...`
+        );
+      } else {
+        console.warn(`Failed to load texture ${name}:`, error);
+      }
       return null;
     }
   }

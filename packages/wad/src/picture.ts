@@ -142,6 +142,20 @@ export function decodePictureColumn(
 export function decodePicture(buffer: ArrayBuffer): DoomPicture {
   const header = decodePictureHeader(buffer);
 
+  // Validate header values - DOOM pictures should have reasonable dimensions
+  // Maximum texture size in DOOM is typically 512x512, but we'll allow up to 4096
+  const MAX_DIMENSION = 4096;
+  if (header.width <= 0 || header.width > MAX_DIMENSION) {
+    throw new Error(
+      `Invalid picture width: ${header.width} (must be between 1 and ${MAX_DIMENSION})`
+    );
+  }
+  if (header.height <= 0 || header.height > MAX_DIMENSION) {
+    throw new Error(
+      `Invalid picture height: ${header.height} (must be between 1 and ${MAX_DIMENSION})`
+    );
+  }
+
   // Check if buffer has enough space for column offsets
   const minBufferSize = 8 + header.width * 4;
   if (buffer.byteLength < minBufferSize) {
