@@ -13,6 +13,7 @@ export interface InputState {
     deltaX: number;
     deltaY: number;
     buttons: boolean[];
+    locked: boolean;
   };
   touch: {
     active: boolean;
@@ -98,6 +99,7 @@ export function createInputState(): InputState {
       deltaX: 0,
       deltaY: 0,
       buttons: [false, false, false],
+      locked: false,
     },
     touch: {
       active: false,

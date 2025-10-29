@@ -1,3 +1,4 @@
+import type { ReactElement } from 'react';
 import { useState, useEffect, useMemo } from 'react';
 import type { WadFile } from '@web-doom/wad';
 import { decodePicture, pictureToCanvas, parsePaletteFromPLAYPAL, findLump } from '@web-doom/wad';
@@ -15,7 +16,7 @@ interface TextureInfo {
   height: number;
 }
 
-function TextureGalleryPage({ wadFile }: TextureGalleryPageProps) {
+function TextureGalleryPage({ wadFile }: TextureGalleryPageProps): ReactElement {
   const [textures, setTextures] = useState<TextureInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('');

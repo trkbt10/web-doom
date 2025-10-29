@@ -1,3 +1,4 @@
+import type { ReactElement } from 'react';
 import type { WadFile, WadMetadata, WadValidationResult } from '@web-doom/wad';
 
 interface WadViewerMainPageProps {
@@ -7,7 +8,7 @@ interface WadViewerMainPageProps {
   structure: string;
 }
 
-function WadViewerMainPage({ wadFile, metadata, validation, structure }: WadViewerMainPageProps) {
+function WadViewerMainPage({ wadFile, metadata, validation, structure }: WadViewerMainPageProps): ReactElement {
   return (
     <div className="wad-info">
       <section className="info-section">

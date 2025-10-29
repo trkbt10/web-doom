@@ -1,7 +1,8 @@
+import type { ReactElement } from 'react';
 import { Link } from 'react-router-dom';
 import './HomePage.css';
 
-function HomePage() {
+function HomePage(): ReactElement {
   return (
     <div className="home-page">
       <div className="home-container">

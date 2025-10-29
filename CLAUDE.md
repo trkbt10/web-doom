@@ -2,6 +2,16 @@
 
 このプロジェクトは **Bun** をパッケージマネージャーとして使用するモノレポ構成です。
 
+## ブートストラップ
+
+このプロジェクトの開発には **Bun** が必須です。環境に Bun がインストールされていない場合は、以下のコマンドでインストールしてください：
+
+```bash
+curl -fsSL https://bun.sh/install | bash
+```
+
+インストール後、シェルを再起動するか `source ~/.bashrc` を実行してください。
+
 ## パッケージマネージャー
 
 **必ず Bun を使用してください。**
@@ -81,6 +91,30 @@ bun run --filter @web-doom/pages dev
 
 - `tsconfig.base.json`: 共通設定
 - 各パッケージの `tsconfig.json`: パッケージ固有の設定と依存関係の参照
+
+### 型チェックツール
+
+型チェックには **tsgo** (`@typescript/native-preview`) を使用します。tsgo は従来の `tsc` よりも高速な TypeScript コンパイラです。
+
+- パッケージ: `@typescript/native-preview`
+- 型チェックコマンド: `bun run typecheck`
+
+### 型定義ファイル生成
+
+ライブラリパッケージ（`@web-doom/wad`, `@web-doom/core`, `@web-doom/wad-viewer`）の型定義ファイル（`.d.ts`）生成には **vite-plugin-dts** を使用します。
+
+- パッケージ: `vite-plugin-dts`
+- ビルド時に自動的に型定義ファイルが生成されます
+- 各パッケージの `vite.config.ts` で設定されています
+
+## 受け入れ条件
+
+コードの変更は、以下の条件を満たす必要があります：
+
+1. **ビルドの成功**: `bun run build` が正常に完了すること
+2. **型チェックの成功**: `bun run typecheck` が正常に完了すること
+
+すべての変更は、これらのコマンドが成功することを確認してからコミットしてください。
 
 ## 注意事項
 
