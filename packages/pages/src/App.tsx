@@ -5,7 +5,7 @@ import WadViewerPage from './pages/WadViewerPage';
 import WebDoomPage from './pages/WebDoomPage';
 import ImageConverterPage from './pages/ImageConverterPage';
 
-function App() {
+function App(): JSX.Element {
   return (
     <HashRouter>
       <Layout>

@@ -7,7 +7,7 @@ interface WadViewerMainPageProps {
   structure: string;
 }
 
-function WadViewerMainPage({ wadFile, metadata, validation, structure }: WadViewerMainPageProps) {
+function WadViewerMainPage({ wadFile, metadata, validation, structure }: WadViewerMainPageProps): JSX.Element {
   return (
     <div className="wad-info">
       <section className="info-section">

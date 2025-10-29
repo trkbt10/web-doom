@@ -14,7 +14,7 @@ import TextureGalleryPage from './WadViewer/TextureGalleryPage';
 import AudioPreviewPage from './WadViewer/AudioPreviewPage';
 import './WadViewerPage.css';
 
-function WadViewerPage() {
+function WadViewerPage(): JSX.Element {
   const [wadFile, setWadFile] = useState<WadFile | null>(null);
   const [metadata, setMetadata] = useState<WadMetadata | null>(null);
   const [validation, setValidation] = useState<WadValidationResult | null>(null);

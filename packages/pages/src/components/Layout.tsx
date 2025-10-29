@@ -19,7 +19,7 @@ const navItems: NavItem[] = [
   { path: '/image-converter', label: 'Image Converter', description: 'Convert between PNG/JPEG and DOOM format' },
 ];
 
-function Layout({ children }: LayoutProps) {
+function Layout({ children }: LayoutProps): JSX.Element {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const location = useLocation();
 

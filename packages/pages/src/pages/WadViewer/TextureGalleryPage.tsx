@@ -15,7 +15,7 @@ interface TextureInfo {
   height: number;
 }
 
-function TextureGalleryPage({ wadFile }: TextureGalleryPageProps) {
+function TextureGalleryPage({ wadFile }: TextureGalleryPageProps): JSX.Element {
   const [textures, setTextures] = useState<TextureInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('');

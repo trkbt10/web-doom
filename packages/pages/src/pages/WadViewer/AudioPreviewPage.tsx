@@ -12,7 +12,7 @@ interface AudioInfo {
   type: 'sound' | 'music' | 'unknown';
 }
 
-function AudioPreviewPage({ wadFile }: AudioPreviewPageProps) {
+function AudioPreviewPage({ wadFile }: AudioPreviewPageProps): JSX.Element {
   const [filter, setFilter] = useState('');
   const [selectedAudio, setSelectedAudio] = useState<AudioInfo | null>(null);
 

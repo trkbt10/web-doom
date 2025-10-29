@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import './HomePage.css';
 
-function HomePage() {
+function HomePage(): JSX.Element {
   return (
     <div className="home-page">
       <div className="home-container">

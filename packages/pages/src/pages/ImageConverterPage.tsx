@@ -12,7 +12,7 @@ import './ImageConverterPage.css';
 
 type ConversionMode = 'to-doom' | 'from-doom';
 
-function ImageConverterPage() {
+function ImageConverterPage(): JSX.Element {
   const [mode, setMode] = useState<ConversionMode>('to-doom');
   const [error, setError] = useState<string>('');
   const [isDragging, setIsDragging] = useState(false);

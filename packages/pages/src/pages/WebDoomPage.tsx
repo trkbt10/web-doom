@@ -3,7 +3,7 @@ import { createDoomEngine, createCanvas3DRenderer, type DoomEngine } from '@web-
 import { decode } from '@web-doom/wad';
 import './WebDoomPage.css';
 
-function WebDoomPage() {
+function WebDoomPage(): JSX.Element {
   const [engine, setEngine] = useState<DoomEngine | null>(null);
   const [isRunning, setIsRunning] = useState(false);
   const [error, setError] = useState<string>('');
