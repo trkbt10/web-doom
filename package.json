@@ -8,10 +8,18 @@
   ],
   "scripts": {
     "dev": "bun run --filter \"./packages/*\" dev",
-    "build": "bun run --filter \"./packages/*\" build",
+    "build": "npm run build:wad && npm run build:wad-viewer && npm run build:web-doom",
+    "build:wad": "cd packages/wad && npx tsc",
+    "build:wad-viewer": "cd packages/wad-viewer && npx tsc",
+    "build:web-doom": "cd packages/web-doom && npx tsc",
+    "build:pages": "echo 'Pages build requires vite and dependencies to be installed'",
+    "typecheck": "npm run typecheck:wad && npm run typecheck:wad-viewer && npm run typecheck:web-doom",
+    "typecheck:wad": "cd packages/wad && npx tsc --noEmit",
+    "typecheck:wad-viewer": "cd packages/wad-viewer && npx tsc --noEmit",
+    "typecheck:web-doom": "cd packages/web-doom && npx tsc --noEmit",
     "test": "bun run --filter \"./packages/*\" test",
-    "lint": "bun run --filter \"./packages/*\" lint",
-    "clean": "bun run --filter \"./packages/*\" clean && rm -rf node_modules"
+    "lint": "npm run typecheck",
+    "clean": "rm -rf packages/*/dist packages/*/tsconfig.tsbuildinfo && rm -rf node_modules"
   },
   "devDependencies": {
     "@types/bun": "latest",

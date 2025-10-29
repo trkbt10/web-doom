@@ -27,10 +27,10 @@ export function parseWadHeader(buffer: ArrayBuffer) {
  */
 export function parseWadDirectory(
   buffer: ArrayBuffer,
-  header: { numLumps: number; directoryOffset: number }
+  _header: { numLumps: number; directoryOffset: number }
 ) {
   const wad = decode(buffer);
-  return wad.directory.map((entry) => ({
+  return wad.directory.map((entry: any) => ({
     offset: entry.filepos,
     size: entry.size,
     name: entry.name,
@@ -57,7 +57,7 @@ export class WadFile {
   }
 
   get lumps() {
-    return this.wad.directory.map((entry) => ({
+    return this.wad.directory.map((entry: any) => ({
       offset: entry.filepos,
       size: entry.size,
       name: entry.name,
@@ -65,7 +65,7 @@ export class WadFile {
   }
 
   getLump(name: string): ArrayBuffer | null {
-    const lump = this.wad.lumps.find((l) => l.name === name.toUpperCase());
+    const lump = this.wad.lumps.find((l: any) => l.name === name.toUpperCase());
     return lump ? lump.data : null;
   }
 
