@@ -15,6 +15,8 @@ import type { Thing } from '../entities/types';
 import type { Angle } from '../types';
 import type { WadFile } from '@web-doom/wad';
 import { TextureManager, SpriteManager } from '../graphics';
+import { renderParticles, type Particle } from '../effects/particle-system';
+import { renderWeaponHUD, type WeaponState } from '../weapons/weapon-hud';
 
 interface WallSegment {
   topY: number;
@@ -43,6 +45,8 @@ export class Canvas3DRenderer implements Renderer {
   private textureManager: TextureManager | null = null;
   private spriteManager: SpriteManager | null = null;
   private zBuffer: number[] = []; // For sprite rendering
+  private particles: Particle[] = [];
+  private weaponState: WeaponState | null = null;
 
   constructor(canvas: HTMLCanvasElement, wad?: WadFile) {
     this.canvas = canvas;
@@ -85,6 +89,20 @@ export class Canvas3DRenderer implements Renderer {
    */
   setMapData(mapData: MapData | null): void {
     this.mapData = mapData;
+  }
+
+  /**
+   * Set particles for rendering
+   */
+  setParticles(particles: Particle[]): void {
+    this.particles = particles;
+  }
+
+  /**
+   * Set weapon state for HUD rendering
+   */
+  setWeaponState(weaponState: WeaponState): void {
+    this.weaponState = weaponState;
   }
 
   init(options: RenderOptions): void {
@@ -264,7 +282,29 @@ export class Canvas3DRenderer implements Renderer {
       this.render3DView();
     }
 
-    // Then render HUD on top
+    // Render particles
+    if (this.camera && this.particles.length > 0) {
+      renderParticles(
+        this.ctx,
+        this.particles,
+        this.camera,
+        this.canvas.width,
+        this.canvas.height
+      );
+    }
+
+    // Render weapon HUD
+    if (this.weaponState && this.spriteManager) {
+      renderWeaponHUD(
+        this.ctx,
+        this.spriteManager,
+        this.weaponState,
+        this.canvas.width,
+        this.canvas.height
+      );
+    }
+
+    // Then render HUD text on top
     const padding = 10;
     const fontSize = 14;
 
@@ -309,6 +349,9 @@ export class Canvas3DRenderer implements Renderer {
     const fov = this.camera.fov || Math.PI / 2; // 90 degrees default
     const halfHeight = height / 2;
 
+    // Get player's current sector for floor/ceiling textures
+    const playerSector = this.getPlayerSector();
+
     // Cast a ray for each vertical stripe on screen
     for (let x = 0; x < width; x++) {
       // Calculate ray angle
@@ -324,6 +367,30 @@ export class Canvas3DRenderer implements Renderer {
 
         // Apply distance-based shading
         const shade = Math.max(0.2, Math.min(1, 1 - hit.distance / 800));
+
+        // Draw floor and ceiling for this column
+        if (playerSector && hit.segments.length > 0) {
+          const firstSegment = hit.segments[0];
+          const lastSegment = hit.segments[hit.segments.length - 1];
+
+          // Render floor (below walls)
+          if (lastSegment.bottomY < height) {
+            this.renderFloorCeilingColumn(
+              x, rayAngle, Math.floor(lastSegment.bottomY), height,
+              playerSector.floorHeight, playerSector.floorTexture,
+              true, shade
+            );
+          }
+
+          // Render ceiling (above walls)
+          if (firstSegment.topY > 0) {
+            this.renderFloorCeilingColumn(
+              x, rayAngle, 0, Math.ceil(firstSegment.topY),
+              playerSector.ceilingHeight, playerSector.ceilingTexture,
+              false, shade
+            );
+          }
+        }
 
         // Draw all wall segments for this column
         for (const segment of hit.segments) {
@@ -355,8 +422,131 @@ export class Canvas3DRenderer implements Renderer {
             this.ctx.fillRect(x, segment.topY, 1, segmentHeight);
           }
         }
+      } else if (playerSector) {
+        // No wall hit - render full floor and ceiling
+        const shade = 1.0;
+        this.renderFloorCeilingColumn(
+          x, rayAngle, halfHeight, height,
+          playerSector.floorHeight, playerSector.floorTexture,
+          true, shade
+        );
+        this.renderFloorCeilingColumn(
+          x, rayAngle, 0, halfHeight,
+          playerSector.ceilingHeight, playerSector.ceilingTexture,
+          false, shade
+        );
       }
     }
+  }
+
+  /**
+   * Render floor or ceiling column
+   */
+  private renderFloorCeilingColumn(
+    screenX: number,
+    rayAngle: number,
+    startY: number,
+    endY: number,
+    planeHeight: number,
+    textureName: string,
+    isFloor: boolean,
+    baseShade: number
+  ): void {
+    if (!this.camera || !this.textureManager) return;
+
+    // Get flat texture
+    const flatCanvas = this.textureManager.getFlat(textureName);
+    if (!flatCanvas) return;
+
+    const rayDirX = Math.cos(rayAngle);
+    const rayDirY = Math.sin(rayAngle);
+    const playerZ = this.camera.position.z;
+    const halfHeight = this.canvas.height / 2;
+
+    // Sample every few pixels for performance
+    const step = 2;
+    for (let y = startY; y < endY; y += step) {
+      // Calculate distance to floor/ceiling point
+      const screenY = y - halfHeight;
+      if (screenY === 0) continue;
+
+      const distance = Math.abs((planeHeight - playerZ) * halfHeight / screenY);
+      if (distance <= 0 || distance > 2000) continue;
+
+      // Calculate world position
+      const worldX = this.camera.position.x + rayDirX * distance;
+      const worldY = this.camera.position.y + rayDirY * distance;
+
+      // Calculate texture coordinates
+      const texSize = 64;
+      const texX = Math.floor(Math.abs(worldX) % texSize);
+      const texY = Math.floor(Math.abs(worldY) % texSize);
+
+      // Get pixel from texture
+      const pixelData = this.ctx.createImageData(1, step);
+      const srcCtx = flatCanvas.getContext('2d');
+      if (srcCtx) {
+        const srcPixel = srcCtx.getImageData(texX, texY, 1, 1).data;
+
+        // Apply distance-based shading
+        const distShade = Math.max(0.3, Math.min(1, 1 - distance / 1000)) * baseShade;
+
+        for (let i = 0; i < step; i++) {
+          const offset = i * 4;
+          pixelData.data[offset] = srcPixel[0] * distShade;
+          pixelData.data[offset + 1] = srcPixel[1] * distShade;
+          pixelData.data[offset + 2] = srcPixel[2] * distShade;
+          pixelData.data[offset + 3] = 255;
+        }
+
+        this.ctx.putImageData(pixelData, screenX, y);
+      }
+    }
+  }
+
+  /**
+   * Get player's current sector
+   */
+  private getPlayerSector(): Sector | null {
+    if (!this.camera || !this.mapData) return null;
+
+    // Simple point-in-polygon test for each sector
+    for (let i = 0; i < this.mapData.sectors.length; i++) {
+      const sector = this.mapData.sectors[i];
+
+      // Find linedefs belonging to this sector
+      const sectorLinedefs: Linedef[] = [];
+      for (const linedef of this.mapData.linedefs) {
+        const rightSidedef = linedef.rightSidedef >= 0 ? this.mapData.sidedefs[linedef.rightSidedef] : null;
+        const leftSidedef = linedef.leftSidedef >= 0 ? this.mapData.sidedefs[linedef.leftSidedef] : null;
+
+        if (rightSidedef?.sector === i || leftSidedef?.sector === i) {
+          sectorLinedefs.push(linedef);
+        }
+      }
+
+      // Simple point-in-polygon using ray casting
+      if (sectorLinedefs.length > 0) {
+        let inside = false;
+        const px = this.camera.position.x;
+        const py = this.camera.position.y;
+
+        for (const linedef of sectorLinedefs) {
+          const v1 = this.mapData.vertices[linedef.startVertex];
+          const v2 = this.mapData.vertices[linedef.endVertex];
+
+          if (((v1.y > py) !== (v2.y > py)) &&
+              (px < (v2.x - v1.x) * (py - v1.y) / (v2.y - v1.y) + v1.x)) {
+            inside = !inside;
+          }
+        }
+
+        if (inside) return sector;
+      }
+    }
+
+    // Fallback to first sector
+    return this.mapData.sectors[0] || null;
   }
 
   /**

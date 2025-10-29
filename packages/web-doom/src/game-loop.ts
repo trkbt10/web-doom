@@ -147,6 +147,9 @@ function update(state: DoomGameState, deltaTime: TimeSeconds): DoomGameState {
     state.sectorActionManager.update(state.map, deltaTime);
   }
 
+  // Update particle system
+  state.particleSystem.update(deltaTime);
+
   // Update player
   state = updatePlayerLogic(state, deltaTime);
 
@@ -265,7 +268,7 @@ function tryFireWeapon(state: DoomGameState, player: any): DoomGameState {
   }
 
   // Fire hitscan weapon
-  const hitThing = fireHitscanWeapon(
+  const hitResult = fireHitscanWeapon(
     weaponType,
     player.position,
     player.angle,
@@ -273,11 +276,31 @@ function tryFireWeapon(state: DoomGameState, player: any): DoomGameState {
     state.map
   );
 
-  if (hitThing) {
-    // Apply damage
-    const damage = calculateDamage(weaponDef);
-    applyDamage(hitThing, damage);
-    state = updateThing(state, hitThing.id, hitThing);
+  if (hitResult) {
+    // Calculate hit direction
+    const dx = hitResult.position.x - player.position.x;
+    const dy = hitResult.position.y - player.position.y;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    const dirX = dx / distance;
+    const dirY = dy / distance;
+
+    if (hitResult.type === 'thing' && hitResult.thing) {
+      // Hit a thing - create blood particles
+      const damage = calculateDamage(weaponDef);
+      applyDamage(hitResult.thing, damage);
+      state = updateThing(state, hitResult.thing.id, hitResult.thing);
+
+      // Create blood particles
+      state.particleSystem.createBlood(
+        hitResult.position,
+        { x: dirX, y: dirY, z: 0 },
+        15
+      );
+    } else if (hitResult.type === 'wall') {
+      // Hit a wall - create bullet puff and sparks
+      state.particleSystem.createBulletPuff(hitResult.position);
+      state.particleSystem.createSparks(hitResult.position, 3);
+    }
   }
 
   return state;
@@ -516,6 +539,23 @@ function render(state: DoomGameState, renderer: Renderer): void {
   // Pass map data to renderer if it supports it (for Canvas3DRenderer)
   if ('setMapData' in renderer && typeof renderer.setMapData === 'function') {
     renderer.setMapData(state.map);
+  }
+
+  // Pass particles to renderer
+  if ('setParticles' in renderer && typeof renderer.setParticles === 'function') {
+    renderer.setParticles(state.particleSystem.getParticles());
+  }
+
+  // Pass weapon state to renderer (TODO: get from player state)
+  if ('setWeaponState' in renderer && typeof renderer.setWeaponState === 'function') {
+    // For now, create a basic weapon state from player
+    const weaponState = {
+      weaponType: player.currentWeapon,
+      firing: player.attacking || false,
+      fireFrame: 0,
+      reloadTime: 0,
+    };
+    renderer.setWeaponState(weaponState);
   }
 
   // Render world

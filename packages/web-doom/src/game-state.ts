@@ -9,6 +9,7 @@ import type { Thing } from './entities/types';
 import type { InputState } from './input/input';
 import { Difficulty, GameMode, type TimeSeconds } from './types';
 import { SectorActionManager } from './map/sector-actions';
+import { ParticleSystem } from './effects/particle-system';
 
 /**
  * Game state
@@ -66,6 +67,9 @@ export interface DoomGameState {
 
   /** Sector action manager */
   sectorActionManager: SectorActionManager;
+
+  /** Particle system */
+  particleSystem: ParticleSystem;
 }
 
 /**
@@ -91,6 +95,7 @@ export function createGameState(
     fps: 0,
     frameCount: 0,
     sectorActionManager: new SectorActionManager(),
+    particleSystem: new ParticleSystem(),
   };
 }
 

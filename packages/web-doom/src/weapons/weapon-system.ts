@@ -4,7 +4,14 @@
 
 import type { Thing } from '../entities/types';
 import type { MapData } from '../map/types';
+import type { Vec3 } from '../types';
 import { isMonster } from '../entities/types';
+
+export interface HitResult {
+  type: 'thing' | 'wall';
+  position: Vec3;
+  thing?: Thing;
+}
 
 export enum WeaponType {
   Fist = 0,
@@ -92,11 +99,11 @@ export function fireHitscanWeapon(
   playerAngle: number,
   things: Thing[],
   mapData: MapData
-): Thing | null {
+): HitResult | null {
   const weaponDef = weaponDefs.get(weaponType);
   if (!weaponDef || weaponDef.projectile) return null;
 
-  let closestHit: Thing | null = null;
+  let closestHit: HitResult | null = null;
   let closestDistance = Infinity;
 
   // Fire each pellet (for shotgun)
@@ -130,13 +137,32 @@ export function fireHitscanWeapon(
         const distance = Math.sqrt(relX * relX + relY * relY);
 
         // Check for wall occlusion
-        if (!isOccluded(playerPosition, thing.position, distance, mapData)) {
+        const wallHit = checkWallHit(playerPosition, rayDirX, rayDirY, distance, mapData);
+        if (!wallHit || wallHit.distance > distance) {
           if (distance < closestDistance) {
             closestDistance = distance;
-            closestHit = thing;
+            closestHit = {
+              type: 'thing',
+              position: { ...thing.position },
+              thing,
+            };
           }
         }
       }
+    }
+
+    // Check for wall hits
+    const wallHit = checkWallHit(playerPosition, rayDirX, rayDirY, 8192, mapData);
+    if (wallHit && wallHit.distance < closestDistance) {
+      closestDistance = wallHit.distance;
+      closestHit = {
+        type: 'wall',
+        position: {
+          x: playerPosition.x + rayDirX * wallHit.distance,
+          y: playerPosition.y + rayDirY * wallHit.distance,
+          z: playerPosition.z,
+        },
+      };
     }
   }
 
@@ -144,22 +170,17 @@ export function fireHitscanWeapon(
 }
 
 /**
- * Check if line of sight is occluded by walls
+ * Check for wall hit along ray
  */
-function isOccluded(
+function checkWallHit(
   from: { x: number; y: number },
-  to: { x: number; y: number },
+  rayDirX: number,
+  rayDirY: number,
   maxDistance: number,
   mapData: MapData
-): boolean {
-  const dx = to.x - from.x;
-  const dy = to.y - from.y;
-  const distance = Math.sqrt(dx * dx + dy * dy);
-
-  if (distance > maxDistance) return true;
-
-  const rayDirX = dx / distance;
-  const rayDirY = dy / distance;
+): { distance: number } | null {
+  let closestDistance = maxDistance;
+  let hitWall = false;
 
   // Check intersection with solid walls
   for (const linedef of mapData.linedefs) {
@@ -176,19 +197,20 @@ function isOccluded(
     const denominator = rayDirX * lineDirY - rayDirY * lineDirX;
     if (Math.abs(denominator) < 0.0001) continue;
 
-    const dx2 = v1.x - from.x;
-    const dy2 = v1.y - from.y;
+    const dx = v1.x - from.x;
+    const dy = v1.y - from.y;
 
-    const t1 = (dx2 * lineDirY - dy2 * lineDirX) / denominator;
-    const t2 = (dx2 * rayDirY - dy2 * rayDirX) / denominator;
+    const t1 = (dx * lineDirY - dy * lineDirX) / denominator;
+    const t2 = (dx * rayDirY - dy * rayDirX) / denominator;
 
-    // Check if intersection is valid and closer than target
-    if (t1 > 0 && t1 < distance && t2 >= 0 && t2 <= 1) {
-      return true; // Occluded by wall
+    // Check if intersection is valid and closer than current closest
+    if (t1 > 0 && t1 < closestDistance && t2 >= 0 && t2 <= 1) {
+      closestDistance = t1;
+      hitWall = true;
     }
   }
 
-  return false;
+  return hitWall ? { distance: closestDistance } : null;
 }
 
 /**
