@@ -38,3 +38,9 @@ bun-debug.log*
 
 # Vite
 .vite/
+
+# WAD files (game data)
+*.wad
+*.WAD
+packages/pages/public/wads/*.wad
+packages/pages/public/wads/*.WAD
