@@ -10,8 +10,9 @@ export default defineConfig({
       formats: ['es']
     },
     rollupOptions: {
-      external: ['@web-doom/wad-viewer']
-    }
+      external: ['@web-doom/wad']
+    },
+    emptyOutDir: false
   },
   test: {
     globals: true,
