@@ -1,0 +1,2 @@
+# This is a placeholder for the .github directory.
+# You may want to add configuration files here such as issue templates, workflows, etc.
