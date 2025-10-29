@@ -3,12 +3,13 @@
  */
 
 import type { DoomGameState } from './game-state';
-import { updateGameState, updateFPS, getActivePlayer, updatePlayer } from './game-state';
+import { updateGameState, updateFPS, getActivePlayer, updatePlayer, removeThing } from './game-state';
 import type { Renderer } from './renderer';
 import { getMovementInput, getTurnInput, clearFrameInput, isActionActive } from './input/input';
 import { InputAction } from './input/input';
 import { tryMove, getHeightAt } from './physics/collision';
 import type { TimeSeconds } from './types';
+import { isPickup, ThingType } from './entities/types';
 
 /**
  * Game loop configuration
@@ -210,6 +211,115 @@ function updatePlayerLogic(state: DoomGameState, deltaTime: TimeSeconds): DoomGa
     attacking: isActionActive(state.input, InputAction.Fire),
     using: isActionActive(state.input, InputAction.Use),
   };
+
+  state = updatePlayer(state, state.activePlayer, newPlayer);
+
+  // Check for item pickups
+  state = checkItemPickups(state, newPlayer);
+
+  return state;
+}
+
+/**
+ * Check for and handle item pickups
+ */
+function checkItemPickups(state: DoomGameState, player: any): DoomGameState {
+  const pickupRadius = 32; // Pickup distance
+
+  // Check all things for pickups
+  for (const thing of state.things) {
+    if (!isPickup(thing.type)) continue;
+
+    // Calculate distance to player
+    const dx = thing.position.x - player.position.x;
+    const dy = thing.position.y - player.position.y;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+
+    // If close enough, pick up the item
+    if (distance <= pickupRadius + thing.radius) {
+      state = pickupItem(state, player, thing);
+      state = removeThing(state, thing.id);
+    }
+  }
+
+  return state;
+}
+
+/**
+ * Handle picking up an item
+ */
+function pickupItem(state: DoomGameState, player: any, thing: any): DoomGameState {
+  const newPlayer = { ...player };
+
+  // Handle different item types
+  switch (thing.type) {
+    // Health items
+    case ThingType.Stimpack:
+      newPlayer.stats.health = Math.min(newPlayer.stats.health + 10, 100);
+      break;
+    case ThingType.Medikit:
+      newPlayer.stats.health = Math.min(newPlayer.stats.health + 25, 100);
+      break;
+
+    // Armor items
+    case ThingType.GreenArmor:
+      newPlayer.stats.armor = Math.max(newPlayer.stats.armor, 100);
+      break;
+    case ThingType.BlueArmor:
+      newPlayer.stats.armor = Math.max(newPlayer.stats.armor, 200);
+      break;
+    case ThingType.ArmorBonus:
+      newPlayer.stats.armor = Math.min(newPlayer.stats.armor + 1, 200);
+      break;
+
+    // Ammo
+    case ThingType.Clip:
+      newPlayer.inventory.ammo[0] = Math.min(newPlayer.inventory.ammo[0] + 10, newPlayer.inventory.maxAmmo[0]);
+      break;
+    case ThingType.AmmoBox:
+      newPlayer.inventory.ammo[0] = Math.min(newPlayer.inventory.ammo[0] + 50, newPlayer.inventory.maxAmmo[0]);
+      break;
+    case ThingType.Shell:
+      newPlayer.inventory.ammo[1] = Math.min(newPlayer.inventory.ammo[1] + 4, newPlayer.inventory.maxAmmo[1]);
+      break;
+    case ThingType.ShellBox:
+      newPlayer.inventory.ammo[1] = Math.min(newPlayer.inventory.ammo[1] + 20, newPlayer.inventory.maxAmmo[1]);
+      break;
+
+    // Weapons
+    case ThingType.Shotgun:
+      if (!newPlayer.inventory.weapons.includes(2)) {
+        newPlayer.inventory.weapons.push(2);
+      }
+      newPlayer.inventory.ammo[1] = Math.min(newPlayer.inventory.ammo[1] + 8, newPlayer.inventory.maxAmmo[1]);
+      break;
+    case ThingType.Chaingun:
+      if (!newPlayer.inventory.weapons.includes(3)) {
+        newPlayer.inventory.weapons.push(3);
+      }
+      newPlayer.inventory.ammo[0] = Math.min(newPlayer.inventory.ammo[0] + 20, newPlayer.inventory.maxAmmo[0]);
+      break;
+
+    // Keys
+    case ThingType.BlueKeycard:
+      newPlayer.inventory.keys.blue = true;
+      break;
+    case ThingType.YellowKeycard:
+      newPlayer.inventory.keys.yellow = true;
+      break;
+    case ThingType.RedKeycard:
+      newPlayer.inventory.keys.red = true;
+      break;
+    case ThingType.BlueSkullKey:
+      newPlayer.inventory.keys.blueSkull = true;
+      break;
+    case ThingType.YellowSkullKey:
+      newPlayer.inventory.keys.yellowSkull = true;
+      break;
+    case ThingType.RedSkullKey:
+      newPlayer.inventory.keys.redSkull = true;
+      break;
+  }
 
   return updatePlayer(state, state.activePlayer, newPlayer);
 }

@@ -16,13 +16,18 @@ import type { Angle } from '../types';
 import type { WadFile } from '@web-doom/wad';
 import { TextureManager, SpriteManager } from '../graphics';
 
+interface WallSegment {
+  topY: number;
+  bottomY: number;
+  textureName: string;
+  textureCanvas: HTMLCanvasElement | null;
+  textureX: number;
+}
+
 interface WallHit {
   distance: number;
-  wallHeight: number;
-  textureName: string;
-  textureX: number;
+  segments: WallSegment[];
   lightLevel: number;
-  textureCanvas: HTMLCanvasElement | null;
 }
 
 /**
@@ -302,11 +307,11 @@ export class Canvas3DRenderer implements Renderer {
 
     const { width, height } = this.canvas;
     const fov = this.camera.fov || Math.PI / 2; // 90 degrees default
+    const halfHeight = height / 2;
 
     // Cast a ray for each vertical stripe on screen
     for (let x = 0; x < width; x++) {
       // Calculate ray angle
-      // x = 0 should be left edge of FOV, x = width should be right edge
       const cameraX = (2 * x / width) - 1; // -1 to 1
       const rayAngle = this.camera.angle + Math.atan(cameraX * Math.tan(fov / 2));
 
@@ -317,39 +322,38 @@ export class Canvas3DRenderer implements Renderer {
         // Store distance in z-buffer for sprite rendering
         this.zBuffer[x] = hit.distance;
 
-        // Calculate wall screen height
-        const wallScreenHeight = Math.min(hit.wallHeight / hit.distance * (height / 2), height * 3);
-        const wallTop = (height - wallScreenHeight) / 2;
-        const wallBottom = wallTop + wallScreenHeight;
-
         // Apply distance-based shading
         const shade = Math.max(0.2, Math.min(1, 1 - hit.distance / 800));
 
-        // Draw wall slice
-        if (hit.textureCanvas) {
-          this.ctx.save();
-          this.ctx.globalAlpha = shade;
+        // Draw all wall segments for this column
+        for (const segment of hit.segments) {
+          if (segment.textureCanvas) {
+            this.ctx.save();
+            this.ctx.globalAlpha = shade;
 
-          // Draw textured column
-          this.ctx.drawImage(
-            hit.textureCanvas,
-            hit.textureX, // Source X
-            0, // Source Y
-            1, // Source width (1 pixel column)
-            hit.textureCanvas.height, // Source height
-            x, // Dest X
-            wallTop, // Dest Y
-            1, // Dest width
-            wallScreenHeight // Dest height (stretch to fit wall height)
-          );
+            // Draw textured column
+            const segmentHeight = segment.bottomY - segment.topY;
+            this.ctx.drawImage(
+              segment.textureCanvas,
+              segment.textureX, // Source X
+              0, // Source Y
+              1, // Source width (1 pixel column)
+              segment.textureCanvas.height, // Source height
+              x, // Dest X
+              segment.topY, // Dest Y
+              1, // Dest width
+              segmentHeight // Dest height
+            );
 
-          this.ctx.restore();
-        } else {
-          // Fallback to colored column
-          const color = this.getTextureColor(hit.textureName);
-          const shadedColor = this.shadeColor(color, shade);
-          this.ctx.fillStyle = shadedColor;
-          this.ctx.fillRect(x, wallTop, 1, wallScreenHeight);
+            this.ctx.restore();
+          } else {
+            // Fallback to colored column
+            const color = this.getTextureColor(segment.textureName);
+            const shadedColor = this.shadeColor(color, shade);
+            this.ctx.fillStyle = shadedColor;
+            const segmentHeight = segment.bottomY - segment.topY;
+            this.ctx.fillRect(x, segment.topY, 1, segmentHeight);
+          }
         }
       }
     }
@@ -365,6 +369,7 @@ export class Canvas3DRenderer implements Renderer {
     const rayDirY = Math.sin(rayAngle);
     const rayOriginX = this.camera.position.x;
     const rayOriginY = this.camera.position.y;
+    const playerZ = this.camera.position.z;
 
     let closestHit: WallHit | null = null;
     let closestDistance = Infinity;
@@ -384,43 +389,131 @@ export class Canvas3DRenderer implements Renderer {
       );
 
       if (intersection && intersection.distance < closestDistance) {
-        // Get sidedef and sector info
-        const sidedef = this.mapData.sidedefs[linedef.rightSidedef];
-        const sector = this.mapData.sectors[sidedef.sector];
+        const rightSidedef = this.mapData.sidedefs[linedef.rightSidedef];
+        const rightSector = this.mapData.sectors[rightSidedef.sector];
 
-        // Calculate wall height
-        const wallHeight = sector.ceilingHeight - sector.floorHeight;
+        // Check if this is a portal (two-sided wall) or solid wall
+        const hasLeftSide = linedef.leftSidedef >= 0;
+        const leftSidedef = hasLeftSide ? this.mapData.sidedefs[linedef.leftSidedef] : null;
+        const leftSector = leftSidedef ? this.mapData.sectors[leftSidedef.sector] : null;
 
-        // Get texture
-        const textureName = sidedef.middleTexture || sidedef.upperTexture || 'GRAY';
-        let textureCanvas: HTMLCanvasElement | null = null;
-
-        if (this.textureManager) {
-          const textureData = this.textureManager.getTexture(textureName);
-          if (textureData) {
-            textureCanvas = textureData.canvas;
-          }
-        }
-
-        // Calculate texture X coordinate
+        const segments: WallSegment[] = [];
         const wallLength = Math.sqrt((v2.x - v1.x) ** 2 + (v2.y - v1.y) ** 2);
         const hitWallT = intersection.wallT;
-        const textureWidth = textureCanvas ? textureCanvas.width : 64;
-        const textureX = Math.floor((hitWallT * wallLength) % textureWidth);
+
+        if (!leftSector) {
+          // Solid wall - draw middle texture from floor to ceiling
+          const textureName = rightSidedef.middleTexture || 'GRAY';
+          const textureCanvas = this.getTextureCanvas(textureName);
+          const textureWidth = textureCanvas ? textureCanvas.width : 64;
+          const textureX = Math.floor((hitWallT * wallLength + rightSidedef.xOffset) % textureWidth);
+
+          // Project floor and ceiling heights to screen
+          const ceilingScreenY = this.projectHeight(rightSector.ceilingHeight, intersection.distance, playerZ);
+          const floorScreenY = this.projectHeight(rightSector.floorHeight, intersection.distance, playerZ);
+
+          segments.push({
+            topY: ceilingScreenY,
+            bottomY: floorScreenY,
+            textureName,
+            textureCanvas,
+            textureX,
+          });
+        } else {
+          // Portal (two-sided) - draw upper, middle, and lower textures as needed
+          const frontCeiling = rightSector.ceilingHeight;
+          const frontFloor = rightSector.floorHeight;
+          const backCeiling = leftSector.ceilingHeight;
+          const backFloor = leftSector.floorHeight;
+
+          // Project all heights to screen
+          const frontCeilingY = this.projectHeight(frontCeiling, intersection.distance, playerZ);
+          const frontFloorY = this.projectHeight(frontFloor, intersection.distance, playerZ);
+          const backCeilingY = this.projectHeight(backCeiling, intersection.distance, playerZ);
+          const backFloorY = this.projectHeight(backFloor, intersection.distance, playerZ);
+
+          // Upper texture (if back ceiling is lower than front ceiling)
+          if (backCeiling < frontCeiling && rightSidedef.upperTexture && rightSidedef.upperTexture !== '-') {
+            const textureCanvas = this.getTextureCanvas(rightSidedef.upperTexture);
+            const textureWidth = textureCanvas ? textureCanvas.width : 64;
+            const textureX = Math.floor((hitWallT * wallLength + rightSidedef.xOffset) % textureWidth);
+
+            segments.push({
+              topY: frontCeilingY,
+              bottomY: backCeilingY,
+              textureName: rightSidedef.upperTexture,
+              textureCanvas,
+              textureX,
+            });
+          }
+
+          // Lower texture (if back floor is higher than front floor)
+          if (backFloor > frontFloor && rightSidedef.lowerTexture && rightSidedef.lowerTexture !== '-') {
+            const textureCanvas = this.getTextureCanvas(rightSidedef.lowerTexture);
+            const textureWidth = textureCanvas ? textureCanvas.width : 64;
+            const textureX = Math.floor((hitWallT * wallLength + rightSidedef.xOffset) % textureWidth);
+
+            segments.push({
+              topY: backFloorY,
+              bottomY: frontFloorY,
+              textureName: rightSidedef.lowerTexture,
+              textureCanvas,
+              textureX,
+            });
+          }
+
+          // Middle texture (if specified - used for transparent elements like bars)
+          if (rightSidedef.middleTexture && rightSidedef.middleTexture !== '-') {
+            const textureCanvas = this.getTextureCanvas(rightSidedef.middleTexture);
+            const textureWidth = textureCanvas ? textureCanvas.width : 64;
+            const textureX = Math.floor((hitWallT * wallLength + rightSidedef.xOffset) % textureWidth);
+
+            // Middle texture spans between the visible portal opening
+            const topY = Math.max(frontCeilingY, backCeilingY);
+            const bottomY = Math.min(frontFloorY, backFloorY);
+
+            if (bottomY > topY) {
+              segments.push({
+                topY,
+                bottomY,
+                textureName: rightSidedef.middleTexture,
+                textureCanvas,
+                textureX,
+              });
+            }
+          }
+        }
 
         closestDistance = intersection.distance;
         closestHit = {
           distance: intersection.distance,
-          wallHeight,
-          textureName,
-          textureX,
-          lightLevel: sector.lightLevel,
-          textureCanvas,
+          segments,
+          lightLevel: rightSector.lightLevel,
         };
       }
     }
 
     return closestHit;
+  }
+
+  /**
+   * Project a world height to screen Y coordinate
+   */
+  private projectHeight(worldHeight: number, distance: number, viewHeight: number): number {
+    const relativeHeight = worldHeight - viewHeight;
+    const screenHeight = (relativeHeight / distance) * (this.canvas.height / 2);
+    return (this.canvas.height / 2) - screenHeight;
+  }
+
+  /**
+   * Get texture canvas from texture manager
+   */
+  private getTextureCanvas(textureName: string): HTMLCanvasElement | null {
+    if (!this.textureManager || !textureName || textureName === '-') {
+      return null;
+    }
+    const textureData = this.textureManager.getTexture(textureName);
+    return textureData ? textureData.canvas : null;
   }
 
   /**
@@ -460,7 +553,6 @@ export class Canvas3DRenderer implements Renderer {
     const distance = Math.sqrt(dx2 * dx2 + dy2 * dy2);
 
     // Apply fish-eye correction (perpendicular distance to camera plane)
-    // Project the ray direction onto the camera forward vector
     const cameraForwardX = Math.cos(this.camera!.angle);
     const cameraForwardY = Math.sin(this.camera!.angle);
     const dotProduct = rayDirX * cameraForwardX + rayDirY * cameraForwardY;

@@ -62,6 +62,55 @@ export function parseMap(wad: WadFile, mapName: string): MapData | null {
 }
 
 /**
+ * Parse THINGS lump to get raw thing data
+ */
+export function parseThings(wad: WadFile, mapName: string): Array<{
+  x: number;
+  y: number;
+  angle: number;
+  type: number;
+  flags: number;
+}> {
+  const mapLump = findLump(wad, mapName);
+  if (!mapLump) {
+    return [];
+  }
+
+  const mapIndex = wad.lumps.indexOf(mapLump);
+  if (mapIndex === -1) {
+    return [];
+  }
+
+  const thingsLump = wad.lumps[mapIndex + 1]; // THINGS is first after map marker
+  if (!thingsLump) {
+    return [];
+  }
+
+  const data = new DataView(thingsLump.data);
+  const count = thingsLump.size / 10; // Each thing is 10 bytes
+  const things: Array<{
+    x: number;
+    y: number;
+    angle: number;
+    type: number;
+    flags: number;
+  }> = [];
+
+  for (let i = 0; i < count; i++) {
+    const offset = i * 10;
+    things.push({
+      x: data.getInt16(offset, true),
+      y: data.getInt16(offset + 2, true),
+      angle: data.getInt16(offset + 4, true),
+      type: data.getInt16(offset + 6, true),
+      flags: data.getInt16(offset + 8, true),
+    });
+  }
+
+  return things;
+}
+
+/**
  * Parse VERTEXES lump
  */
 function parseVertices(lump: WadLump): Vertex[] {
