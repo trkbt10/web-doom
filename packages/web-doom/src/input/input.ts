@@ -13,7 +13,6 @@ export interface InputState {
     deltaX: number;
     deltaY: number;
     buttons: boolean[];
-    locked: boolean;
   };
   touch: {
     active: boolean;
@@ -99,7 +98,6 @@ export function createInputState(): InputState {
       deltaX: 0,
       deltaY: 0,
       buttons: [false, false, false],
-      locked: false,
     },
     touch: {
       active: false,
@@ -132,14 +130,9 @@ export function initInput(
 
   // Mouse handlers
   const handleMouseMove = (e: MouseEvent) => {
-    if (state.mouse.locked) {
-      state.mouse.deltaX = e.movementX;
-      state.mouse.deltaY = e.movementY;
-    } else {
-      const rect = element.getBoundingClientRect();
-      state.mouse.x = e.clientX - rect.left;
-      state.mouse.y = e.clientY - rect.top;
-    }
+    const rect = element.getBoundingClientRect();
+    state.mouse.x = e.clientX - rect.left;
+    state.mouse.y = e.clientY - rect.top;
   };
 
   const handleMouseDown = (e: MouseEvent) => {
@@ -149,11 +142,6 @@ export function initInput(
 
   const handleMouseUp = (e: MouseEvent) => {
     state.mouse.buttons[e.button] = false;
-  };
-
-  // Pointer lock handlers
-  const handlePointerLockChange = () => {
-    state.mouse.locked = document.pointerLockElement === element;
   };
 
   // Touch handlers
@@ -194,7 +182,6 @@ export function initInput(
   element.addEventListener('mousemove', handleMouseMove);
   element.addEventListener('mousedown', handleMouseDown);
   element.addEventListener('mouseup', handleMouseUp);
-  document.addEventListener('pointerlockchange', handlePointerLockChange);
   element.addEventListener('touchstart', handleTouchStart);
   element.addEventListener('touchmove', handleTouchMove);
   element.addEventListener('touchend', handleTouchEnd);
@@ -206,25 +193,10 @@ export function initInput(
     element.removeEventListener('mousemove', handleMouseMove);
     element.removeEventListener('mousedown', handleMouseDown);
     element.removeEventListener('mouseup', handleMouseUp);
-    document.removeEventListener('pointerlockchange', handlePointerLockChange);
     element.removeEventListener('touchstart', handleTouchStart);
     element.removeEventListener('touchmove', handleTouchMove);
     element.removeEventListener('touchend', handleTouchEnd);
   };
-}
-
-/**
- * Request pointer lock
- */
-export function requestPointerLock(element: HTMLElement): void {
-  element.requestPointerLock();
-}
-
-/**
- * Exit pointer lock
- */
-export function exitPointerLock(): void {
-  document.exitPointerLock();
 }
 
 /**
@@ -302,16 +274,6 @@ export function getTurnInput(
   }
   if (isActionActive(state, InputAction.LookDown, bindings)) {
     pitch -= 1.5;
-  }
-
-  // Mouse turning (if pointer is locked)
-  if (state.mouse.locked) {
-    yaw -= state.mouse.deltaX * mouseSensitivity;
-    pitch -= state.mouse.deltaY * mouseSensitivity;
-
-    // Reset mouse deltas
-    state.mouse.deltaX = 0;
-    state.mouse.deltaY = 0;
   }
 
   return { yaw, pitch };
