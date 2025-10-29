@@ -1,4 +1,5 @@
-import { ReactNode, useState } from 'react';
+import type { ReactNode, ReactElement } from 'react';
+import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import './Layout.css';
 
@@ -19,7 +20,7 @@ const navItems: NavItem[] = [
   { path: '/image-converter', label: 'Image Converter', description: 'Convert between PNG/JPEG and DOOM format' },
 ];
 
-function Layout({ children }: LayoutProps): JSX.Element {
+function Layout({ children }: LayoutProps): ReactElement {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const location = useLocation();
 

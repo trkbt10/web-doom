@@ -1,4 +1,5 @@
-import { useState, useRef, DragEvent } from 'react';
+import type { DragEvent, ReactElement } from 'react';
+import { useState, useRef } from 'react';
 import { Routes, Route, NavLink } from 'react-router-dom';
 import {
   decode,
@@ -14,7 +15,7 @@ import TextureGalleryPage from './WadViewer/TextureGalleryPage';
 import AudioPreviewPage from './WadViewer/AudioPreviewPage';
 import './WadViewerPage.css';
 
-function WadViewerPage(): JSX.Element {
+function WadViewerPage(): ReactElement {
   const [wadFile, setWadFile] = useState<WadFile | null>(null);
   const [metadata, setMetadata] = useState<WadMetadata | null>(null);
   const [validation, setValidation] = useState<WadValidationResult | null>(null);

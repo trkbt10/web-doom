@@ -1,3 +1,4 @@
+import type { ReactElement } from 'react';
 import { useMemo, useState } from 'react';
 import type { WadFile, WadLump } from '@web-doom/wad';
 import './AudioPreviewPage.css';
@@ -12,7 +13,7 @@ interface AudioInfo {
   type: 'sound' | 'music' | 'unknown';
 }
 
-function AudioPreviewPage({ wadFile }: AudioPreviewPageProps): JSX.Element {
+function AudioPreviewPage({ wadFile }: AudioPreviewPageProps): ReactElement {
   const [filter, setFilter] = useState('');
   const [selectedAudio, setSelectedAudio] = useState<AudioInfo | null>(null);
 

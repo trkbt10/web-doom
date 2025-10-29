@@ -1,9 +1,10 @@
-import { useState, useRef, useEffect, DragEvent } from 'react';
+import type { DragEvent, ReactElement } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { createDoomEngine, createCanvas3DRenderer, type DoomEngine } from '@web-doom/core';
 import { decode } from '@web-doom/wad';
 import './WebDoomPage.css';
 
-function WebDoomPage(): JSX.Element {
+function WebDoomPage(): ReactElement {
   const [engine, setEngine] = useState<DoomEngine | null>(null);
   const [isRunning, setIsRunning] = useState(false);
   const [error, setError] = useState<string>('');

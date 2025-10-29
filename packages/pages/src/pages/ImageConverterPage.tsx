@@ -1,4 +1,5 @@
-import { useState, useRef, DragEvent } from 'react';
+import type { DragEvent, ReactElement } from 'react';
+import { useState, useRef } from 'react';
 import {
   loadFileToCanvas,
   canvasToPNG,
@@ -12,7 +13,7 @@ import './ImageConverterPage.css';
 
 type ConversionMode = 'to-doom' | 'from-doom';
 
-function ImageConverterPage(): JSX.Element {
+function ImageConverterPage(): ReactElement {
   const [mode, setMode] = useState<ConversionMode>('to-doom');
   const [error, setError] = useState<string>('');
   const [isDragging, setIsDragging] = useState(false);
