@@ -144,6 +144,11 @@ function WebDoomPage() {
     if (engine && !isRunning) {
       engine.start();
       setIsRunning(true);
+
+      // Request pointer lock for mouse control
+      if (canvasRef.current) {
+        canvasRef.current.requestPointerLock();
+      }
     }
   };
 
@@ -151,6 +156,18 @@ function WebDoomPage() {
     if (engine && isRunning) {
       engine.stop();
       setIsRunning(false);
+
+      // Exit pointer lock
+      if (document.pointerLockElement) {
+        document.exitPointerLock();
+      }
+    }
+  };
+
+  const handleCanvasClick = () => {
+    // Request pointer lock when canvas is clicked during gameplay
+    if (engine && isRunning && canvasRef.current && !document.pointerLockElement) {
+      canvasRef.current.requestPointerLock();
     }
   };
 
@@ -196,7 +213,8 @@ function WebDoomPage() {
               width={640}
               height={480}
               className="game-canvas"
-              style={{ border: '2px solid #333', background: '#000' }}
+              style={{ border: '2px solid #333', background: '#000', cursor: isRunning ? 'none' : 'default' }}
+              onClick={handleCanvasClick}
             />
             {!engine && !error && (
               <div
@@ -258,10 +276,12 @@ function WebDoomPage() {
           <div className="game-info">
             <h3>Controls</h3>
             <ul>
-              <li><strong>Arrow Keys:</strong> Move forward/backward, turn left/right</li>
-              <li><strong>Space:</strong> Use/Open doors</li>
-              <li><strong>Ctrl:</strong> Fire weapon</li>
-              <li><strong>ESC:</strong> Pause menu</li>
+              <li><strong>Arrow Keys / WASD:</strong> Move forward/backward, turn/strafe left/right</li>
+              <li><strong>Mouse:</strong> Look around (click canvas to lock pointer)</li>
+              <li><strong>Space / E:</strong> Use/Open doors</li>
+              <li><strong>Ctrl / Left Click:</strong> Fire weapon</li>
+              <li><strong>Shift:</strong> Run</li>
+              <li><strong>ESC:</strong> Release mouse pointer</li>
             </ul>
             <p className="info-note">
               Note: This is a work-in-progress implementation using a 2D top-down renderer. Not all features are complete.

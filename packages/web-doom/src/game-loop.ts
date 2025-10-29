@@ -251,6 +251,14 @@ function render(state: DoomGameState, renderer: Renderer): void {
   // Render world
   renderWorld(state, renderer);
 
+  // Render player indicator (always visible in top-down view)
+  renderer.renderAutomap(
+    state.showAutomap ? state.map.linedefs : [],
+    { x: player.position.x, y: player.position.y },
+    player.angle,
+    1.0
+  );
+
   // Render HUD
   renderer.renderHUD({
     health: player.stats.health,
@@ -267,16 +275,6 @@ function render(state: DoomGameState, renderer: Renderer): void {
     face: 'STFST01', // TODO: Dynamic face based on health/state
     fps: state.fps,
   });
-
-  // Render automap if enabled
-  if (state.showAutomap) {
-    renderer.renderAutomap(
-      state.map.linedefs,
-      { x: player.position.x, y: player.position.y },
-      player.angle,
-      1.0
-    );
-  }
 
   renderer.endFrame();
 }
