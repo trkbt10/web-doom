@@ -30,6 +30,7 @@
       "version": "0.0.1",
       "dependencies": {
         "@web-doom/core": "workspace:*",
+        "@web-doom/game-controller": "workspace:*",
         "@web-doom/wad": "workspace:*",
         "@web-doom/wad-viewer": "workspace:*",
         "react": "^18.2.0",

@@ -43,6 +43,12 @@ function HomePage(): ReactElement {
               <p>Convert between PNG/JPEG images and DOOM picture format. Create custom textures and sprites for WAD files.</p>
               <Link to="/image-converter" className="feature-link">Open Converter →</Link>
             </div>
+
+            <div className="feature-card">
+              <h3>Game Controller</h3>
+              <p>Interactive game controller with multi-input support. Touch, mouse, and gamepad inputs for browser-based gaming.</p>
+              <Link to="/game-controller" className="feature-link">Try Controller →</Link>
+            </div>
           </div>
         </section>
 
