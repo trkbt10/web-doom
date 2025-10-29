@@ -19,7 +19,8 @@ export function createGeminiClient(apiKey?: string): GoogleGenAI {
     throw new Error('Gemini API key is required. Set GEMINI_API_KEY environment variable or pass apiKey parameter.');
   }
 
-  return new GoogleGenAI({ apiKey: key });
+  // Create client with API key
+  return new GoogleGenAI({ apiKey: key } as any);
 }
 
 /**
@@ -209,7 +210,13 @@ export async function saveTransformationResults(
       const filepath = path.join(outputDir, filename);
 
       // Extract base64 data from data URL
-      const base64Data = result.transformed.split(',')[1];
+      const parts = result.transformed.split(',');
+      if (parts.length < 2) {
+        console.error(`Invalid data URL for ${result.original.name}`);
+        continue;
+      }
+
+      const base64Data = parts[1];
       const buffer = Buffer.from(base64Data, 'base64');
 
       fs.writeFileSync(filepath, buffer);

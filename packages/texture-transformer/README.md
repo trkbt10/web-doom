@@ -19,6 +19,25 @@ Transform DOOM/Freedoom textures into different visual styles using Google's Gem
 bun install
 ```
 
+## Development
+
+```bash
+# Build the package
+bun run build
+
+# Run tests
+bun run test
+
+# Watch mode for tests
+bun run test:watch
+
+# Type checking
+bun run typecheck
+
+# Clean build artifacts
+bun run clean
+```
+
 ## Setup
 
 1. Get a Gemini API key from [Google AI Studio](https://makersuite.google.com/app/apikey)
@@ -175,12 +194,40 @@ const results = await transformTexturesConcurrent(
 );
 ```
 
+## Testing
+
+The package includes comprehensive unit tests:
+
+```bash
+# Run all tests
+bun run test
+
+# Run tests in watch mode
+bun run test:watch
+```
+
+Tests cover:
+- Texture category detection
+- Lump format validation
+- Texture grouping logic
+- Prompt building
+- Data URL parsing
+- Freedoom catalog lookups
+
 ## Notes
 
 - The Gemini API has rate limits, so batch processing includes delays
 - Transparency preservation works best with sprite textures
 - Wall and flat textures should maintain tiling properties
 - Transform times vary based on texture size and complexity
+- Canvas API is required for texture extraction (browser environment or canvas package in Node.js)
+
+## Requirements
+
+- Bun package manager
+- TypeScript 5.3+
+- Node.js 18+ or Bun runtime
+- Gemini API key from Google AI Studio
 
 ## License
 

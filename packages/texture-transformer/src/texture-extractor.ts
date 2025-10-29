@@ -99,18 +99,24 @@ export function isPictureLump(lump: WadLump): boolean {
 
 /**
  * Convert picture to base64 PNG data URL
+ * Note: This function requires a browser environment with Canvas API
  */
 export function pictureToBase64PNG(picture: DoomPicture, palette: [number, number, number][]): string {
-  // Create a mock canvas environment for Node.js
-  if (typeof document === 'undefined') {
-    // In Node.js environment, we'll need to handle this differently
-    // For now, return empty string as this requires canvas package
-    console.warn('Canvas API not available in Node.js environment');
-    return '';
+  // Check if running in browser environment
+  if (typeof document === 'undefined' || typeof HTMLCanvasElement === 'undefined') {
+    // In Node.js environment, return placeholder
+    // Actual conversion requires canvas package or browser environment
+    console.warn('Canvas API not available in Node.js environment. Texture extraction will not include image data.');
+    return 'data:image/png;base64,';
   }
 
-  const canvas = pictureToCanvas(picture, { palette });
-  return canvas.toDataURL('image/png');
+  try {
+    const canvas = pictureToCanvas(picture, { palette });
+    return canvas.toDataURL('image/png');
+  } catch (error) {
+    console.warn('Failed to convert picture to PNG:', error);
+    return 'data:image/png;base64,';
+  }
 }
 
 /**
