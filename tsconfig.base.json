@@ -17,14 +17,7 @@
     "forceConsistentCasingInFileNames": true,
     "isolatedModules": true,
     "declaration": true,
-    "declarationMap": true,
-    "sourceMap": true,
-    "baseUrl": ".",
-    "paths": {
-      "@web-doom/wad": ["./packages/wad/src/index.ts"],
-      "@web-doom/wad-viewer": ["./packages/wad-viewer/src/index.ts"],
-      "@web-doom/core": ["./packages/web-doom/src/index.ts"]
-    }
+    "sourceMap": true
   },
   "exclude": ["node_modules", "dist", "build", ".turbo"]
 }

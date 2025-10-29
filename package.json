@@ -3,23 +3,19 @@
   "version": "0.0.1",
   "private": true,
   "description": "DOOM ported to web with TypeScript",
+  "packageManager": "bun@latest",
   "workspaces": [
     "packages/*"
   ],
   "scripts": {
     "dev": "bun run --filter \"./packages/*\" dev",
-    "build": "npm run build:wad && npm run build:wad-viewer && npm run build:web-doom",
-    "build:wad": "cd packages/wad && npx tsc",
-    "build:wad-viewer": "cd packages/wad-viewer && npx tsc",
-    "build:web-doom": "cd packages/web-doom && npx tsc",
-    "build:pages": "echo 'Pages build requires vite and dependencies to be installed'",
-    "typecheck": "npm run typecheck:wad && npm run typecheck:wad-viewer && npm run typecheck:web-doom",
-    "typecheck:wad": "cd packages/wad && npx tsc --noEmit",
-    "typecheck:wad-viewer": "cd packages/wad-viewer && npx tsc --noEmit",
-    "typecheck:web-doom": "cd packages/web-doom && npx tsc --noEmit",
+    "build": "bun run build:libs && bun run build:pages",
+    "build:libs": "bun run --filter @web-doom/wad build && bun run --filter @web-doom/core build && bun run --filter @web-doom/wad-viewer build",
+    "build:pages": "bun run --filter @web-doom/pages build",
+    "typecheck": "tsc -b packages/wad packages/web-doom packages/wad-viewer packages/pages",
     "test": "bun run --filter \"./packages/*\" test",
-    "lint": "npm run typecheck",
-    "clean": "rm -rf packages/*/dist packages/*/tsconfig.tsbuildinfo && rm -rf node_modules"
+    "lint": "bun run typecheck",
+    "clean": "rm -rf packages/*/dist packages/*/tsconfig.tsbuildinfo node_modules bun.lockb"
   },
   "devDependencies": {
     "@types/bun": "latest",
