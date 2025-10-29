@@ -7,6 +7,7 @@ import WebDoomPage from './pages/WebDoomPage';
 import WebDoom2DPage from './pages/WebDoom2DPage';
 import WebDoom3DPage from './pages/WebDoom3DPage';
 import ImageConverterPage from './pages/ImageConverterPage';
+import GameControllerPage from './pages/GameControllerPage';
 
 function App(): ReactElement {
   return (
@@ -19,6 +20,7 @@ function App(): ReactElement {
           <Route path="/web-doom-2d" element={<WebDoom2DPage />} />
           <Route path="/web-doom-3d" element={<WebDoom3DPage />} />
           <Route path="/image-converter" element={<ImageConverterPage />} />
+          <Route path="/game-controller" element={<GameControllerPage />} />
         </Routes>
       </Layout>
     </HashRouter>
