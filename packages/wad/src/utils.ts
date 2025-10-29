@@ -255,7 +255,6 @@ export function getStatistics(wad: WadFile): Record<string, number | string> {
  */
 export function createMemoryMap(wad: WadFile): string {
   const lines: string[] = [];
-  const metadata = getMetadata(wad);
 
   lines.push('MEMORY MAP:');
   lines.push('');
