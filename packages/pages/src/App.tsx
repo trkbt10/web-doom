@@ -11,7 +11,7 @@ function App() {
       <Layout>
         <Routes>
           <Route path="/" element={<HomePage />} />
-          <Route path="/wad-viewer" element={<WadViewerPage />} />
+          <Route path="/wad-viewer/*" element={<WadViewerPage />} />
           <Route path="/web-doom" element={<WebDoomPage />} />
           <Route path="/image-converter" element={<ImageConverterPage />} />
         </Routes>
