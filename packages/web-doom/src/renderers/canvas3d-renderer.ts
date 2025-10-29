@@ -455,7 +455,10 @@ export class Canvas3DRenderer implements Renderer {
     if (!this.camera || !this.textureManager) return;
 
     // Get flat texture
-    const flatCanvas = this.textureManager.getFlat(textureName);
+    const flatTextureData = this.textureManager.getFlat(textureName);
+    if (!flatTextureData) return;
+
+    const flatCanvas = flatTextureData.canvas;
     if (!flatCanvas) return;
 
     const rayDirX = Math.cos(rayAngle);

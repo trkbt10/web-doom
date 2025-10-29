@@ -273,7 +273,7 @@ function tryFireWeapon(state: DoomGameState, player: any): DoomGameState {
     player.position,
     player.angle,
     state.things,
-    state.map
+    state.map! // Non-null assertion: already checked at line 248
   );
 
   if (hitResult) {
@@ -491,7 +491,7 @@ function updateThings(state: DoomGameState, deltaTime: TimeSeconds): DoomGameSta
     const thing = state.things[i];
 
     // Update monster AI
-    const updatedThing = updateMonsterAI(thing, player, state.map, deltaTime);
+    const updatedThing = updateMonsterAI(thing, player, state.map!, deltaTime); // Non-null assertion: already checked at line 484
     if (updatedThing !== thing) {
       state = updateThing(state, thing.id, updatedThing);
     }

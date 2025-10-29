@@ -261,8 +261,9 @@ export * from './input/input';
 export * from './physics/collision';
 export * from './game-loop';
 export * from './graphics';
-export * from './weapons/weapon-system';
-export * from './weapons/weapon-hud';
+// Re-export specific items from weapons to avoid duplicate WeaponType/WeaponState exports
+export { weaponDefs, type WeaponDef } from './weapons/weapon-system';
+export { renderWeaponHUD, updateWeaponState, createWeaponState } from './weapons/weapon-hud';
 export * from './effects/particle-system';
 export * from './save-system';
 export * from './map/sector-actions';
