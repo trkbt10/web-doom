@@ -1,84 +1,76 @@
 /**
- * WAD Viewer - DOOM WAD file parser and viewer
+ * WAD Viewer - Interactive WAD file viewer and analyzer
+ *
+ * Re-exports core WAD functionality with backward compatibility
  */
 
-export interface WadHeader {
-  type: 'IWAD' | 'PWAD';
-  numLumps: number;
-  directoryOffset: number;
-}
+// Re-export everything from @web-doom/wad
+export * from '@web-doom/wad';
 
-export interface WadLump {
-  offset: number;
-  size: number;
-  name: string;
+// Backward compatibility: re-export with old names
+import { decode, type WadFile as WadFileType } from '@web-doom/wad';
+
+/**
+ * @deprecated Use decode() from @web-doom/wad instead
+ */
+export function parseWadHeader(buffer: ArrayBuffer) {
+  const wad = decode(buffer);
+  return {
+    type: wad.header.identification,
+    numLumps: wad.header.numlumps,
+    directoryOffset: wad.header.infotableofs,
+  };
 }
 
 /**
- * Parse WAD file header
+ * @deprecated Use decode() from @web-doom/wad instead
  */
-export function parseWadHeader(buffer: ArrayBuffer): WadHeader {
-  const view = new DataView(buffer);
-  const decoder = new TextDecoder('ascii');
-
-  const typeBytes = new Uint8Array(buffer, 0, 4);
-  const type = decoder.decode(typeBytes) as 'IWAD' | 'PWAD';
-  const numLumps = view.getInt32(4, true);
-  const directoryOffset = view.getInt32(8, true);
-
-  return { type, numLumps, directoryOffset };
+export function parseWadDirectory(
+  buffer: ArrayBuffer,
+  header: { numLumps: number; directoryOffset: number }
+) {
+  const wad = decode(buffer);
+  return wad.directory.map((entry) => ({
+    offset: entry.filepos,
+    size: entry.size,
+    name: entry.name,
+  }));
 }
 
 /**
- * Parse WAD directory
- */
-export function parseWadDirectory(buffer: ArrayBuffer, header: WadHeader): WadLump[] {
-  const view = new DataView(buffer);
-  const decoder = new TextDecoder('ascii');
-  const lumps: WadLump[] = [];
-
-  for (let i = 0; i < header.numLumps; i++) {
-    const entryOffset = header.directoryOffset + i * 16;
-    const offset = view.getInt32(entryOffset, true);
-    const size = view.getInt32(entryOffset + 4, true);
-    const nameBytes = new Uint8Array(buffer, entryOffset + 8, 8);
-    const name = decoder.decode(nameBytes).replace(/\0/g, '').trim();
-
-    lumps.push({ offset, size, name });
-  }
-
-  return lumps;
-}
-
-/**
- * Main WAD file parser class
+ * Legacy WadFile class for backward compatibility
+ * @deprecated Use decode() function from @web-doom/wad instead
  */
 export class WadFile {
-  private buffer: ArrayBuffer;
-  public header: WadHeader;
-  public lumps: WadLump[];
+  private wad: WadFileType;
 
   constructor(buffer: ArrayBuffer) {
-    this.buffer = buffer;
-    this.header = parseWadHeader(buffer);
-    this.lumps = parseWadDirectory(buffer, this.header);
+    this.wad = decode(buffer);
   }
 
-  /**
-   * Get lump data by name
-   */
+  get header() {
+    return {
+      type: this.wad.header.identification,
+      numLumps: this.wad.header.numlumps,
+      directoryOffset: this.wad.header.infotableofs,
+    };
+  }
+
+  get lumps() {
+    return this.wad.directory.map((entry) => ({
+      offset: entry.filepos,
+      size: entry.size,
+      name: entry.name,
+    }));
+  }
+
   getLump(name: string): ArrayBuffer | null {
-    const lump = this.lumps.find(l => l.name === name);
-    if (!lump) return null;
-    return this.buffer.slice(lump.offset, lump.offset + lump.size);
+    const lump = this.wad.lumps.find((l) => l.name === name.toUpperCase());
+    return lump ? lump.data : null;
   }
 
-  /**
-   * Get lump data by index
-   */
   getLumpByIndex(index: number): ArrayBuffer | null {
-    const lump = this.lumps[index];
-    if (!lump) return null;
-    return this.buffer.slice(lump.offset, lump.offset + lump.size);
+    const lump = this.wad.lumps[index];
+    return lump ? lump.data : null;
   }
 }

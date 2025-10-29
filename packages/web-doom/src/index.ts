@@ -2,7 +2,7 @@
  * Web DOOM - DOOM engine implementation for web
  */
 
-import { WadFile } from '@web-doom/wad-viewer';
+import { decode, type WadFile } from '@web-doom/wad';
 
 export interface DoomConfig {
   canvas: HTMLCanvasElement;
@@ -26,7 +26,7 @@ export class DoomEngine {
       throw new Error('Failed to get 2D context');
     }
     this.ctx = ctx;
-    this.wad = new WadFile(config.wadFile);
+    this.wad = decode(config.wadFile);
   }
 
   /**
@@ -34,8 +34,8 @@ export class DoomEngine {
    */
   init(): void {
     console.log('DOOM Engine initialized');
-    console.log('WAD Type:', this.wad.header.type);
-    console.log('Lumps:', this.wad.header.numLumps);
+    console.log('WAD Type:', this.wad.header.identification);
+    console.log('Lumps:', this.wad.header.numlumps);
   }
 
   /**

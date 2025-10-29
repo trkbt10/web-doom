@@ -21,7 +21,7 @@
     "clean": "rm -rf dist node_modules"
   },
   "dependencies": {
-    "@web-doom/wad-viewer": "workspace:*"
+    "@web-doom/wad": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^20.10.0",
