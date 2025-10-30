@@ -94,4 +94,68 @@ export interface TransformOptions {
   preserveTransparency?: boolean;
   /** Target size (if different from original) */
   targetSize?: { width: number; height: number };
+  /** Transformer type to use */
+  transformer?: 'gemini' | 'nanobanana';
+  /** Nanobanana-specific options */
+  nanobananaOptions?: NanobananaOptions;
+}
+
+/**
+ * Nanobanana i2i transformation options
+ */
+export interface NanobananaOptions {
+  /** Model ID to use (e.g., 'nanobanana-i2i-v1') */
+  modelId?: string;
+  /** Strength of transformation (0-1, higher = more deviation from original) */
+  strength?: number;
+  /** Number of inference steps */
+  steps?: number;
+  /** Guidance scale for prompt adherence */
+  guidanceScale?: number;
+  /** Random seed for reproducibility */
+  seed?: number;
+  /** Negative prompt (what to avoid) */
+  negativePrompt?: string;
+}
+
+/**
+ * Image transformer interface
+ */
+export interface ImageTransformer {
+  /** Transform a single texture */
+  transform(
+    texture: ExtractedTexture,
+    options: TransformOptions
+  ): Promise<TransformationResult>;
+
+  /** Transform multiple textures in batch */
+  transformBatch(
+    textures: ExtractedTexture[],
+    options: TransformOptions,
+    onProgress?: (completed: number, total: number) => void
+  ): Promise<TransformationResult[]>;
+}
+
+/**
+ * Batch transformation options
+ */
+export interface BatchTransformOptions extends TransformOptions {
+  /** Concurrency level for parallel processing */
+  concurrency?: number;
+  /** Delay between requests (ms) */
+  delayMs?: number;
+  /** Progress callback */
+  onProgress?: (completed: number, total: number) => void;
+}
+
+/**
+ * Group transformation configuration
+ */
+export interface GroupTransformConfig {
+  /** Group to transform */
+  group: TextureGroup;
+  /** Options for this group */
+  options: TransformOptions;
+  /** Custom prompt override for this group */
+  promptOverride?: string;
 }

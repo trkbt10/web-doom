@@ -14,7 +14,7 @@ import { findHitButton, getRelativeCoordinates } from '../utils/hit-detection';
  */
 export class InputHandler {
   private schema: ControllerSchema;
-  private element: HTMLImageElement | null = null;
+  private element: HTMLElement | null = null;
   private state: ControllerState = {};
   private pointers: Map<number, PointerInfo> = new Map();
   private callbacks: Set<InputCallback> = new Set();
@@ -54,9 +54,9 @@ export class InputHandler {
   }
 
   /**
-   * Attach to a controller image element
+   * Attach to a controller element (container or image)
    */
-  attach(element: HTMLImageElement): void {
+  attach(element: HTMLElement): void {
     this.detach(); // Clean up any previous attachment
     this.element = element;
 
@@ -158,7 +158,12 @@ export class InputHandler {
     if (!this.element) return;
 
     event.preventDefault();
-    const { x, y } = getRelativeCoordinates(event, this.element);
+    const { x, y } = getRelativeCoordinates(
+      event,
+      this.element,
+      this.schema.width,
+      this.schema.height
+    );
     const buttonId = findHitButton(x, y, this.schema);
 
     if (buttonId) {
@@ -186,7 +191,12 @@ export class InputHandler {
     const pointerInfo = this.pointers.get(event.pointerId);
     if (!pointerInfo) return;
 
-    const { x, y } = getRelativeCoordinates(event, this.element);
+    const { x, y } = getRelativeCoordinates(
+      event,
+      this.element,
+      this.schema.width,
+      this.schema.height
+    );
     pointerInfo.currentX = x;
     pointerInfo.currentY = y;
 

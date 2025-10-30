@@ -13,8 +13,8 @@ import {
   findLump,
   DoomPicture
 } from '@web-doom/wad';
-import type { ExtractedTexture, TextureCategory } from './types';
-import { TextureCategory as Category } from './types';
+import type { ExtractedTexture, TextureCategory } from '../core/types';
+import { TextureCategory as Category } from '../core/types';
 
 /**
  * Determine texture category from lump name

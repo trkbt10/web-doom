@@ -4,8 +4,8 @@
  * Group textures and build prompts for AI transformation
  */
 
-import type { ExtractedTexture, TextureGroup, TextureCategory } from './types';
-import { TextureCategory as Category } from './types';
+import type { ExtractedTexture, TextureGroup, TextureCategory } from '../core/types';
+import { TextureCategory as Category } from '../core/types';
 
 /**
  * Get description for texture category

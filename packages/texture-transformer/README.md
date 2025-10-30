@@ -1,17 +1,53 @@
 # @web-doom/texture-transformer
 
-WAD texture transformation using Gemini AI image-to-image generation.
+WAD texture transformation using AI image-to-image generation.
 
-Transform DOOM/Freedoom textures into different visual styles using Google's Gemini AI API.
+Transform DOOM/Freedoom textures into different visual styles using **Gemini AI** or **Nanobanana i2i** API.
 
 ## Features
 
 - Extract textures from WAD files
 - Categorize textures (sprites, walls, flats, etc.)
-- Group textures semantically
-- Transform textures using Gemini AI img2img
+- Group textures semantically for batch processing
+- Transform textures using **Gemini AI** or **Nanobanana i2i**
+- Character image transformation with custom prompts
+- Batch processing with progress tracking and statistics
 - Freedoom texture catalog with prompt templates
-- Batch processing with progress tracking
+
+## Architecture
+
+The package is organized into logical modules with clear dependencies:
+
+```
+src/
+├── core/                     # Core type definitions
+│   └── types.ts
+├── extractors/              # Texture extraction from WAD files
+│   └── texture-extractor.ts
+├── groupers/                # Texture grouping and prompt generation
+│   └── texture-grouper.ts
+├── transformers/            # AI-powered image transformation
+│   ├── gemini-client.ts        # Gemini AI transformer
+│   ├── nanobanana-client.ts    # Nanobanana i2i transformer
+│   ├── transformer-pipeline.ts  # Unified transformation pipeline
+│   └── batch-processor.ts      # Batch processing with stats
+├── catalog/                 # Texture catalogs
+│   └── freedoom-catalog.ts
+└── index.ts                 # Public API
+```
+
+### Dependency Flow
+
+```
+User Application
+      ↓
+BatchProcessor (orchestration)
+      ↓
+TransformerPipeline (transformation)
+      ↓
+├── GeminiClient (Gemini AI)
+└── NanobananaClient (Nanobanana i2i)
+```
 
 ## Installation
 
@@ -40,11 +76,23 @@ bun run clean
 
 ## Setup
 
+### For Gemini AI
+
 1. Get a Gemini API key from [Google AI Studio](https://makersuite.google.com/app/apikey)
 2. Set the environment variable:
 
 ```bash
 export GEMINI_API_KEY="your-api-key-here"
+```
+
+### For Nanobanana i2i
+
+1. Get a Nanobanana API key from your provider
+2. Set the environment variables:
+
+```bash
+export NANOBANANA_API_KEY="your-nanobanana-api-key"
+export NANOBANANA_ENDPOINT="https://api.nanobanana.ai/v1/i2i"  # Optional
 ```
 
 ## Usage
@@ -163,14 +211,14 @@ bun run src/example.ts freedoom1.wad ./output "cyberpunk neon style"
 
 ### Programmatic Usage
 
+#### Basic Transformation with Gemini
+
 ```typescript
 import { decode } from '@web-doom/wad';
 import {
   extractTextures,
   groupTexturesByCategory,
-  createGeminiClient,
-  transformTextureBatch,
-  saveTransformationResults,
+  createTransformerPipeline,
 } from '@web-doom/texture-transformer';
 
 // Load WAD file
@@ -181,22 +229,104 @@ const wad = decode(wadBuffer);
 const textures = extractTextures(wad);
 const groups = groupTexturesByCategory(textures);
 
-// Transform textures
-const client = createGeminiClient(process.env.GEMINI_API_KEY);
-const results = await transformTextureBatch(
-  client,
-  groups[0].textures,
-  {
-    style: 'with cyberpunk neon aesthetic',
-    preserveTransparency: true
-  },
-  (current, total) => {
-    console.log(`Progress: ${current}/${total}`);
-  }
+// Transform textures using Gemini
+const pipeline = createTransformerPipeline({
+  defaultTransformer: 'gemini',
+  gemini: { apiKey: process.env.GEMINI_API_KEY },
+});
+
+const results = await pipeline.transformGroup(
+  groups[0],
+  { style: 'with cyberpunk neon aesthetic' }
 );
 
 // Save results
-await saveTransformationResults(results, './output');
+await pipeline.saveResults(results, './output');
+```
+
+#### Using Nanobanana i2i for Character Transformation
+
+```typescript
+import {
+  extractTextures,
+  createSemanticGroups,
+  createBatchProcessor,
+} from '@web-doom/texture-transformer';
+
+// Extract and create semantic groups
+const textures = extractTextures(wad);
+const groups = createSemanticGroups(textures);
+
+// Get player character sprites
+const playerSprites = groups.get('player-sprites')!;
+
+// Create processor with Nanobanana
+const processor = createBatchProcessor({
+  pipeline: {
+    defaultTransformer: 'nanobanana',
+    nanobanana: {
+      apiKey: process.env.NANOBANANA_API_KEY,
+    },
+  },
+  defaultConcurrency: 5,
+});
+
+// Transform to anime style
+const { results, stats } = await processor.processGroup(playerSprites, {
+  transformer: 'nanobanana',
+  customPrompt: 'anime character with detailed shading and vibrant colors',
+  nanobananaOptions: {
+    strength: 0.75,        // Transformation strength (0-1)
+    steps: 40,             // Number of inference steps
+    guidanceScale: 8.0,    // Prompt adherence
+    negativePrompt: 'realistic, photorealistic, 3d render',
+  },
+});
+
+// Save results
+await processor.saveResults(
+  new Map([['player-sprites', results]]),
+  './output/anime-characters'
+);
+
+console.log(`Transformed ${stats.success} sprites in ${stats.processingTime / 1000}s`);
+```
+
+#### Batch Processing with Group-Specific Options
+
+```typescript
+import { createBatchProcessor, createSemanticGroups } from '@web-doom/texture-transformer';
+
+const groups = createSemanticGroups(textures);
+
+// Define custom configurations for each group
+const configs = [
+  {
+    group: groups.get('player-sprites')!,
+    options: {
+      transformer: 'nanobanana',
+      nanobananaOptions: { strength: 0.7 },
+    },
+    promptOverride: 'Transform to anime-style character sprites',
+  },
+  {
+    group: groups.get('weapons')!,
+    options: {
+      transformer: 'gemini',
+      style: 'with sci-fi futuristic design',
+    },
+  },
+];
+
+const processor = createBatchProcessor();
+const { results, totalStats } = await processor.processGroupsWithConfig(configs);
+
+// Save results organized by group
+await processor.saveResults(results, './output');
+
+console.log(`Total: ${totalStats.total}`);
+console.log(`Success: ${totalStats.success}`);
+console.log(`Time: ${totalStats.processingTime / 1000}s`);
 ```
 
 ## API
@@ -210,16 +340,30 @@ await saveTransformationResults(results, './output');
 ### Texture Grouping
 
 - `groupTexturesByCategory(textures)` - Group by category
-- `createSemanticGroups(textures)` - Smart semantic grouping
+- `createSemanticGroups(textures)` - Smart semantic grouping (player, monsters, weapons, etc.)
 - `buildTransformPrompt(texture, style)` - Build AI prompt for texture
+- `buildBatchPrompt(textures, style)` - Build prompt for batch transformation
 
-### Image Transformation
+### Transformers
 
-- `createGeminiClient(apiKey?)` - Create Gemini AI client
-- `transformTexture(client, texture, options)` - Transform single texture
-- `transformTextureBatch(client, textures, options, onProgress)` - Transform batch
-- `transformTexturesConcurrent(client, textures, options, concurrency)` - Concurrent processing
-- `saveTransformationResults(results, outputDir)` - Save to files
+#### Pipeline and Batch Processing
+
+- `createTransformerPipeline(config?)` - Create unified transformer pipeline
+- `createBatchProcessor(config?)` - Create batch processor with statistics
+
+#### Gemini Client
+
+- `createGeminiClient(config?)` - Create Gemini AI client
+- `GeminiClient.transform(texture, options)` - Transform single texture
+- `GeminiClient.transformBatch(textures, options, onProgress)` - Transform batch
+- `GeminiClient.transformConcurrent(textures, options, concurrency)` - Concurrent processing
+
+#### Nanobanana Client
+
+- `createNanobananaClient(config?)` - Create Nanobanana i2i client
+- `NanobananaClient.transform(texture, options)` - Transform single texture
+- `NanobananaClient.transformBatch(textures, options, onProgress)` - Transform batch
+- `NanobananaClient.transformConcurrent(textures, options, concurrency)` - Concurrent processing
 
 ### Freedoom Catalog
 
@@ -259,6 +403,23 @@ interface TransformOptions {
   customPrompt?: string;
   preserveTransparency?: boolean;
   targetSize?: { width: number; height: number };
+  transformer?: 'gemini' | 'nanobanana';
+  nanobananaOptions?: NanobananaOptions;
+}
+
+interface NanobananaOptions {
+  modelId?: string;
+  strength?: number;          // 0-1, higher = more deviation from original
+  steps?: number;             // Number of inference steps
+  guidanceScale?: number;     // Prompt adherence strength
+  seed?: number;              // For reproducibility
+  negativePrompt?: string;    // What to avoid in the transformation
+}
+
+interface BatchTransformOptions extends TransformOptions {
+  concurrency?: number;
+  delayMs?: number;
+  onProgress?: (completed: number, total: number) => void;
 }
 ```
 

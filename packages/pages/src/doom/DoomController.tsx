@@ -1,12 +1,21 @@
 import { CSSProperties } from 'react';
 import { GameController } from '@web-doom/game-controller';
-import { doomControllerSchema, ControllerInputEvent } from '@web-doom/game-controller';
+import {
+  doomControllerSchema,
+  ControllerInputEvent,
+  ControllerSchema
+} from '@web-doom/game-controller';
 
 export interface DoomControllerProps {
   /**
    * Callback for controller input
    */
   onInput: (buttonId: string, pressed: boolean) => void;
+
+  /**
+   * Controller schema to use (defaults to landscape schema)
+   */
+  schema?: ControllerSchema;
 
   /**
    * Whether the controller should be enabled
@@ -35,6 +44,7 @@ export interface DoomControllerProps {
  */
 export function DoomController({
   onInput,
+  schema = doomControllerSchema,
   enabled = true,
   className,
   style,
@@ -53,7 +63,7 @@ export function DoomController({
 
   return (
     <GameController
-      schema={doomControllerSchema}
+      schema={schema}
       onInput={handleInput}
       className={className}
       style={containerStyle}

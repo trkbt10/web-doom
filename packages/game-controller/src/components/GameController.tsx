@@ -1,12 +1,14 @@
-import { useEffect, useRef, useMemo, CSSProperties } from 'react';
+import { useEffect, useRef, useMemo, useState, CSSProperties } from 'react';
 import {
   ControllerSchema,
   ControllerInputEvent,
   InputCallback,
   ControllerState,
+  ButtonState,
 } from '../types';
 import { generateControllerImage } from '../utils/svg-generator';
 import { InputHandler } from '../input/input-handler';
+import { ControllerOverlay } from './ControllerOverlay';
 
 export interface GameControllerProps {
   /**
@@ -52,7 +54,11 @@ export function GameController({
   onStateChange,
 }: GameControllerProps): JSX.Element {
   const imgRef = useRef<HTMLImageElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const handlerRef = useRef<InputHandler | null>(null);
+  const [pressedButtons, setPressedButtons] = useState<Map<string, ButtonState>>(
+    new Map()
+  );
 
   // Generate controller image from schema
   const imageUrl = useMemo(() => generateControllerImage(schema), [schema]);
@@ -68,20 +74,21 @@ export function GameController({
     };
   }, [schema]);
 
-  // Attach handler to image element
+  // Attach handler to container element
   useEffect(() => {
     const handler = handlerRef.current;
+    const container = containerRef.current;
     const img = imgRef.current;
 
-    if (!handler || !img) return;
+    if (!handler || !container || !img) return;
 
     // Wait for image to load before attaching
     const handleLoad = () => {
-      handler.attach(img);
+      handler.attach(container);
     };
 
     if (img.complete) {
-      handler.attach(img);
+      handler.attach(container);
     } else {
       img.addEventListener('load', handleLoad);
     }
@@ -102,22 +109,23 @@ export function GameController({
         onInput(event);
       }
 
+      // Update pressed buttons state for overlay
+      if (showFeedback) {
+        const state = handler.getState();
+        const newPressedButtons = new Map<string, ButtonState>();
+
+        for (const [buttonId, buttonState] of Object.entries(state)) {
+          if (buttonState.pressed) {
+            newPressedButtons.set(buttonId, buttonState);
+          }
+        }
+
+        setPressedButtons(newPressedButtons);
+      }
+
       if (onStateChange) {
         const state = handler.getState();
         onStateChange(state);
-      }
-
-      // Visual feedback
-      if (showFeedback && imgRef.current) {
-        const img = imgRef.current;
-
-        if (event.pressed) {
-          // Add press effect
-          img.style.filter = 'brightness(1.1)';
-          setTimeout(() => {
-            img.style.filter = 'brightness(1.0)';
-          }, 50);
-        }
       }
     };
 
@@ -141,11 +149,10 @@ export function GameController({
     WebkitUserSelect: 'none',
     WebkitTouchCallout: 'none',
     touchAction: 'none',
-    transition: 'filter 0.05s ease',
   };
 
   return (
-    <div className={className} style={containerStyle}>
+    <div ref={containerRef} className={className} style={containerStyle}>
       <img
         ref={imgRef}
         src={imageUrl}
@@ -155,6 +162,14 @@ export function GameController({
         width={schema.width}
         height={schema.height}
       />
+      {showFeedback && (
+        <ControllerOverlay
+          schema={schema}
+          pressedButtons={pressedButtons}
+          width={schema.width}
+          height={schema.height}
+        />
+      )}
     </div>
   );
 }

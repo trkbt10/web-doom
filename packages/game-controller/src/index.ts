@@ -27,7 +27,7 @@ export type {
 } from './types';
 
 // Schemas
-export { doomControllerSchema } from './schemas/doom-controller';
+export { doomControllerSchema, doomControllerSchemaPortrait } from './schemas/doom-controller';
 
 // Utilities
 export {
@@ -45,3 +45,8 @@ export {
 
 // Input handler (for advanced usage)
 export { InputHandler } from './input/input-handler';
+
+// Debug utilities
+export function enableControllerDebug(enabled: boolean = true): void {
+  (window as any).__CONTROLLER_DEBUG__ = enabled;
+}

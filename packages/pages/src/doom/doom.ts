@@ -29,6 +29,8 @@ export class DoomEngine {
   private isModuleReady = false;
   private isGameStarted = false;
   private scriptLoaded = false;
+  private audioContext?: AudioContext;
+  private isAudioReady = false;
   private keyMapping: DoomKeyMapping = {
     'move-forward': 'ArrowUp',
     'move-backward': 'ArrowDown',
@@ -49,6 +51,117 @@ export class DoomEngine {
   }
 
   /**
+   * Create AudioContext (but don't resume yet - wait for user gesture)
+   */
+  private createAudioContext(): void {
+    if (this.audioContext) {
+      return;
+    }
+
+    try {
+      // Create AudioContext (will be in 'suspended' state due to autoplay policy)
+      this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      console.log('[DOOM] AudioContext created, state:', this.audioContext.state);
+      console.log('[DOOM] Audio will be initialized on user interaction (WAD selection)');
+    } catch (error) {
+      console.warn('[DOOM] Failed to create AudioContext:', error);
+      // Continue without audio
+    }
+  }
+
+  /**
+   * Initialize and warm up the Web Audio API (must be called from user gesture)
+   */
+  private async initializeAudio(): Promise<void> {
+    if (this.isAudioReady) {
+      console.log('[DOOM] Audio already initialized');
+      return;
+    }
+
+    // Create AudioContext if not already created
+    if (!this.audioContext) {
+      this.createAudioContext();
+    }
+
+    if (!this.audioContext) {
+      console.warn('[DOOM] No AudioContext available');
+      return;
+    }
+
+    this.setStatus('Initializing audio system...');
+
+    try {
+      // Resume if suspended (browser autoplay policy)
+      // This MUST be called from a user gesture context
+      if (this.audioContext.state === 'suspended') {
+        this.setStatus('Resuming audio context...');
+        console.log('[DOOM] Attempting to resume AudioContext...');
+        await this.audioContext.resume();
+        console.log('[DOOM] AudioContext resumed, state:', this.audioContext.state);
+      }
+
+      // Warm up the audio context by playing a silent buffer
+      this.setStatus('Warming up audio system...');
+      await this.warmUpAudio();
+
+      this.isAudioReady = true;
+      this.setStatus('Audio system ready');
+      console.log('[DOOM] Audio system initialized and warmed up');
+    } catch (error) {
+      console.warn('[DOOM] Failed to initialize audio:', error);
+      this.setStatus('Audio initialization failed (will continue without audio)');
+      // Don't throw - continue without audio
+    }
+  }
+
+  /**
+   * Warm up the audio context by playing a silent buffer
+   * This ensures the audio system is fully initialized and ready
+   */
+  private async warmUpAudio(): Promise<void> {
+    if (!this.audioContext) {
+      return;
+    }
+
+    return new Promise((resolve, reject) => {
+      try {
+        // Create a silent buffer (10ms of silence)
+        const sampleRate = this.audioContext!.sampleRate;
+        const bufferSize = Math.floor(sampleRate * 0.01); // 10ms
+        const buffer = this.audioContext!.createBuffer(1, bufferSize, sampleRate);
+
+        // Create and connect audio nodes
+        const source = this.audioContext!.createBufferSource();
+        source.buffer = buffer;
+
+        // Create a gain node set to very low volume (almost silent)
+        const gainNode = this.audioContext!.createGain();
+        gainNode.gain.value = 0.001;
+
+        source.connect(gainNode);
+        gainNode.connect(this.audioContext!.destination);
+
+        // Play the silent buffer and wait for it to finish
+        source.onended = () => {
+          console.log('[DOOM] Audio warm-up complete');
+          resolve();
+        };
+
+        source.start(0);
+
+        // Timeout after 1 second
+        setTimeout(() => {
+          console.log('[DOOM] Audio warm-up timeout (continuing anyway)');
+          resolve();
+        }, 1000);
+      } catch (error) {
+        console.warn('[DOOM] Audio warm-up failed:', error);
+        reject(error);
+      }
+    });
+  }
+
+  /**
    * Initialize the DOOM engine
    */
   async initialize(): Promise<void> {
@@ -60,7 +173,11 @@ export class DoomEngine {
     try {
       this.setStatus('Initializing DOOM engine...');
 
+      // Create AudioContext (but don't resume - wait for user gesture)
+      this.createAudioContext();
+
       // Setup Module before loading the script
+      const self = this;
       window.Module = {
         onRuntimeInitialized: () => {
           this.isModuleReady = true;
@@ -68,10 +185,31 @@ export class DoomEngine {
           this.config.onModuleReady?.();
         },
         noInitialRun: true,
-        preRun: [],
+        preRun: [
+          function() {
+            // Initialize SDL2 audio context if available
+            if (self.audioContext && typeof (window as any).SDL2 !== 'undefined') {
+              (window as any).SDL2.audioContext = self.audioContext;
+              console.log('[DOOM] SDL2 audio context attached to Emscripten');
+              console.log('[DOOM] AudioContext state:', self.audioContext.state);
+              console.log('[DOOM] Sample rate:', self.audioContext.sampleRate);
+            } else if (!self.audioContext) {
+              console.warn('[DOOM] No AudioContext available, audio will be disabled');
+            }
+          }
+        ],
         printErr: (text: string) => {
           // Suppress requestAnimationFrame warning - this is Chocolate Doom's issue
           if (text.includes('requestAnimationFrame')) return;
+
+          // Handle memory errors
+          if (text.includes('memory') || text.includes('out of bounds')) {
+            console.error('[DOOM] Memory error:', text);
+            this.setStatus('Error: Memory access error. Try reloading the page.');
+            this.config.onError?.(new Error(`Memory error: ${text}`));
+            return;
+          }
+
           console.error('[DOOM]', text);
         },
         canvas: this.config.canvas,
@@ -110,7 +248,17 @@ export class DoomEngine {
             this.setStatus('All downloads complete');
           }
         },
+        // SDL2 audio context will be set in preRun
+        SDL2: this.audioContext ? { audioContext: this.audioContext } : undefined,
+        // Note: Memory settings are configured at Emscripten build time in configure.ac
+        // INITIAL_MEMORY: 256MB, MAXIMUM_MEMORY: 512MB, ALLOW_MEMORY_GROWTH: true
       };
+
+      // Log audio context status
+      if (this.audioContext) {
+        console.log('[DOOM] AudioContext created, state:', this.audioContext.state);
+        console.log('[DOOM] Audio will be initialized when you load a WAD file');
+      }
 
       // Check if script is already loaded
       const doomPath = `${this.config.baseUrl}doom`;
@@ -163,6 +311,10 @@ export class DoomEngine {
     }
 
     try {
+      // Initialize audio (this is called from user gesture - file selection)
+      console.log('[DOOM] Initializing audio from user gesture...');
+      await this.initializeAudio();
+
       this.setStatus(`Loading ${file.name}...`);
 
       // Read file as ArrayBuffer
@@ -176,7 +328,7 @@ export class DoomEngine {
       this.setStatus(`Starting DOOM with ${file.name}...`);
 
       // Start DOOM with the uploaded WAD
-      this.startGame(wadFileName);
+      await this.startGame(wadFileName);
     } catch (error) {
       console.error('Failed to load WAD:', error);
       throw error instanceof Error ? error : new Error(String(error));
@@ -186,7 +338,7 @@ export class DoomEngine {
   /**
    * Load the default DOOM shareware WAD
    */
-  loadDefaultWad(): void {
+  async loadDefaultWad(): Promise<void> {
     if (!this.isModuleReady) {
       throw new Error('Module not ready yet. Please wait.');
     }
@@ -196,6 +348,10 @@ export class DoomEngine {
     }
 
     try {
+      // Initialize audio (this is called from user gesture - button click)
+      console.log('[DOOM] Initializing audio from user gesture...');
+      await this.initializeAudio();
+
       this.setStatus('Loading default doom1.wad...');
 
       const doomPath = `${this.config.baseUrl}doom`;
@@ -207,10 +363,10 @@ export class DoomEngine {
         `${doomPath}/doom1.wad`,
         true,
         true,
-        () => {
+        async () => {
           // onload callback
           this.setStatus('Starting DOOM...');
-          this.startGame('doom1.wad');
+          await this.startGame('doom1.wad');
         },
         (error: unknown) => {
           // onerror callback
@@ -228,11 +384,46 @@ export class DoomEngine {
   /**
    * Start the game with a specified WAD file
    */
-  private startGame(wadFileName: string): void {
+  private async startGame(wadFileName: string): Promise<void> {
     // Ensure default.cfg is loaded first
     this.ensureDefaultConfig();
 
-    const args = ['-iwad', wadFileName, '-window', '-nogui', '-nomusic', '-config', 'default.cfg'];
+    // Ensure AudioContext is running (should already be warmed up)
+    if (this.audioContext) {
+      try {
+        if (this.audioContext.state === 'suspended') {
+          this.setStatus('Resuming audio...');
+          await this.audioContext.resume();
+          console.log('[DOOM] AudioContext resumed before game start, state:', this.audioContext.state);
+        } else {
+          console.log('[DOOM] AudioContext already running, state:', this.audioContext.state);
+        }
+      } catch (e) {
+        console.warn('[DOOM] Failed to resume AudioContext:', e);
+      }
+    } else {
+      console.log('[DOOM] Starting game without audio');
+    }
+
+    // Get canvas dimensions for DOOM resolution
+    const canvasWidth = this.config.canvas.width;
+    const canvasHeight = this.config.canvas.height;
+
+    console.log(`[DOOM] Canvas element size: ${canvasWidth}x${canvasHeight}`);
+    console.log(`[DOOM] Canvas display size: ${this.config.canvas.style.width} x ${this.config.canvas.style.height}`);
+
+    const args = [
+      '-iwad', wadFileName,
+      '-window',
+      '-nogui',
+      '-nomusic',
+      '-config', 'default.cfg',
+      '-width', canvasWidth.toString(),
+      '-height', canvasHeight.toString(),
+    ];
+
+    console.log(`[DOOM] Starting with resolution: ${canvasWidth}x${canvasHeight}`);
+    console.log(`[DOOM] Arguments:`, args);
 
     if (typeof window.callMain === 'function') {
       window.callMain(args);
@@ -376,9 +567,29 @@ export class DoomEngine {
   /**
    * Cleanup
    */
-  destroy(): void {
+  async destroy(): Promise<void> {
     // Note: We don't cleanup Module or remove the script on unmount
     // because DOOM needs to persist across navigation
     this.pressedKeys.clear();
+
+    // Close audio context if it exists
+    if (this.audioContext && this.audioContext.state !== 'closed') {
+      try {
+        await this.audioContext.close();
+        console.log('[DOOM] AudioContext closed');
+      } catch (e) {
+        console.warn('[DOOM] Failed to close AudioContext:', e);
+      }
+    }
+  }
+
+  /**
+   * Get audio readiness status
+   */
+  getAudioStatus(): { ready: boolean; state?: string } {
+    return {
+      ready: this.isAudioReady,
+      state: this.audioContext?.state,
+    };
   }
 }

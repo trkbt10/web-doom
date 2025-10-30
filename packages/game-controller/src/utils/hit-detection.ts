@@ -103,14 +103,50 @@ export function getButtonById(
  */
 export function getRelativeCoordinates(
   event: PointerEvent | MouseEvent | Touch,
-  element: HTMLImageElement
+  element: HTMLElement,
+  schemaWidth?: number,
+  schemaHeight?: number
 ): { x: number; y: number } {
   const rect = element.getBoundingClientRect();
-  const scaleX = element.width / rect.width;
-  const scaleY = element.height / rect.height;
+
+  // Try to get natural size from image element if available
+  let imageWidth = schemaWidth;
+  let imageHeight = schemaHeight;
+
+  if (element instanceof HTMLImageElement) {
+    imageWidth = imageWidth || element.naturalWidth || element.width;
+    imageHeight = imageHeight || element.naturalHeight || element.height;
+  }
+
+  // Fallback to rect size if no schema size provided
+  if (!imageWidth || !imageHeight) {
+    imageWidth = rect.width;
+    imageHeight = rect.height;
+  }
+
+  const scaleX = imageWidth / rect.width;
+  const scaleY = imageHeight / rect.height;
 
   const x = (event.clientX - rect.left) * scaleX;
   const y = (event.clientY - rect.top) * scaleY;
+
+  // Debug logging (can be removed in production)
+  if ((window as any).__CONTROLLER_DEBUG__) {
+    console.log('[Hit Detection]', {
+      clientX: event.clientX,
+      clientY: event.clientY,
+      rectLeft: rect.left,
+      rectTop: rect.top,
+      rectWidth: rect.width,
+      rectHeight: rect.height,
+      imageWidth,
+      imageHeight,
+      scaleX,
+      scaleY,
+      resultX: x,
+      resultY: y,
+    });
+  }
 
   return { x, y };
 }

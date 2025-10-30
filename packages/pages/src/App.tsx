@@ -10,15 +10,22 @@ import GameControllerPage from './pages/GameControllerPage';
 function App(): ReactElement {
   return (
     <HashRouter>
-      <Layout>
-        <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/wad-viewer/*" element={<WadViewerPage />} />
-          <Route path="/doom-player" element={<DoomPlayerPage />} />
-          <Route path="/image-converter" element={<ImageConverterPage />} />
-          <Route path="/game-controller" element={<GameControllerPage />} />
-        </Routes>
-      </Layout>
+      <Routes>
+        {/* DOOM Player - Standalone fullscreen page without layout */}
+        <Route path="/doom-player" element={<DoomPlayerPage />} />
+
+        {/* Other pages - Use default layout */}
+        <Route path="/*" element={
+          <Layout>
+            <Routes>
+              <Route path="/" element={<HomePage />} />
+              <Route path="/wad-viewer/*" element={<WadViewerPage />} />
+              <Route path="/image-converter" element={<ImageConverterPage />} />
+              <Route path="/game-controller" element={<GameControllerPage />} />
+            </Routes>
+          </Layout>
+        } />
+      </Routes>
     </HashRouter>
   );
 }

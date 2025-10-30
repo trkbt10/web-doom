@@ -1,6 +1,6 @@
 import type { ReactElement } from 'react';
 import { useState, useRef, useEffect } from 'react';
-import { GameController, doomControllerSchema, type ControllerInputEvent, type ControllerState } from '@web-doom/game-controller';
+import { GameController, doomControllerSchema, enableControllerDebug, type ControllerInputEvent, type ControllerState, type ControllerSchema } from '@web-doom/game-controller';
 import './GameControllerPage.css';
 
 interface LogEntry {
@@ -14,12 +14,22 @@ function GameControllerPage(): ReactElement {
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [state, setState] = useState<ControllerState | null>(null);
   const [showState, setShowState] = useState(false);
+  const [debugMode, setDebugMode] = useState(false);
+  const [showSchema, setShowSchema] = useState(false);
   const logsEndRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll to latest log
+  // Update debug mode
+  useEffect(() => {
+    enableControllerDebug(debugMode);
+  }, [debugMode]);
+
+  // Auto-scroll to latest log (only within logs container)
   useEffect(() => {
     if (logsEndRef.current) {
-      logsEndRef.current.scrollIntoView({ behavior: 'smooth' });
+      const logsContainer = logsEndRef.current.parentElement;
+      if (logsContainer) {
+        logsContainer.scrollTop = logsContainer.scrollHeight;
+      }
     }
   }, [logs]);
 
@@ -81,6 +91,22 @@ function GameControllerPage(): ReactElement {
               />
               Show Controller State
             </label>
+            <label style={{ marginLeft: '20px' }}>
+              <input
+                type="checkbox"
+                checked={debugMode}
+                onChange={(e) => setDebugMode(e.target.checked)}
+              />
+              Debug Mode (Console)
+            </label>
+            <label style={{ marginLeft: '20px' }}>
+              <input
+                type="checkbox"
+                checked={showSchema}
+                onChange={(e) => setShowSchema(e.target.checked)}
+              />
+              Show Schema
+            </label>
           </div>
 
           {showState && state && (
@@ -95,6 +121,27 @@ function GameControllerPage(): ReactElement {
                   <span className="no-input">No buttons pressed</span>
                 )}
               </div>
+            </div>
+          )}
+
+          {showSchema && (
+            <div className="schema-display" style={{
+              marginTop: '20px',
+              padding: '15px',
+              backgroundColor: '#f5f5f5',
+              border: '1px solid #ddd',
+              borderRadius: '4px',
+              maxHeight: '400px',
+              overflow: 'auto',
+            }}>
+              <h3>Controller Schema</h3>
+              <pre style={{
+                fontSize: '12px',
+                whiteSpace: 'pre-wrap',
+                wordBreak: 'break-word',
+              }}>
+                {JSON.stringify(doomControllerSchema, null, 2)}
+              </pre>
             </div>
           )}
         </section>

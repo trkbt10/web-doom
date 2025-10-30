@@ -13,7 +13,7 @@ export interface UseDoomReturn {
   isGameStarted: boolean;
   error: Error | null;
   loadWadFile: (file: File) => Promise<void>;
-  loadDefaultWad: () => void;
+  loadDefaultWad: () => Promise<void>;
   handleControllerInput: (buttonId: string, pressed: boolean) => void;
 }
 
@@ -59,7 +59,10 @@ export function useDoom(options: UseDoomOptions): UseDoomReturn {
     });
 
     return () => {
-      engine.destroy();
+      // Cleanup asynchronously
+      engine.destroy().catch((err) => {
+        console.warn('[DOOM Hook] Failed to cleanup:', err);
+      });
       engineRef.current = null;
     };
   }, [canvas, baseUrl, autoInit]);
@@ -85,14 +88,14 @@ export function useDoom(options: UseDoomOptions): UseDoomReturn {
   /**
    * Load the default DOOM shareware WAD
    */
-  const loadDefaultWad = useCallback(() => {
+  const loadDefaultWad = useCallback(async () => {
     if (!engineRef.current) {
       throw new Error('Engine not initialized');
     }
 
     try {
       setError(null);
-      engineRef.current.loadDefaultWad();
+      await engineRef.current.loadDefaultWad();
     } catch (err) {
       const error = err instanceof Error ? err : new Error(String(err));
       setError(error);

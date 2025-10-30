@@ -16,9 +16,7 @@ import {
   extractTextures,
   groupTexturesByCategory,
   createSemanticGroups,
-  createGeminiClient,
-  transformTextureBatch,
-  saveTransformationResults,
+  createTransformerPipeline,
   type TransformOptions,
 } from './index';
 
@@ -107,8 +105,11 @@ async function main() {
   console.log(`Processing ${texturesToTransform.length} textures (limited for demo)...`);
   console.log('');
 
-  // Create Gemini client
-  const client = createGeminiClient();
+  // Create transformer pipeline
+  const pipeline = createTransformerPipeline({
+    defaultTransformer: 'gemini',
+    gemini: { apiKey: process.env.GEMINI_API_KEY },
+  });
 
   // Transform textures
   const transformOptions: TransformOptions = {
@@ -117,13 +118,14 @@ async function main() {
   };
 
   let completed = 0;
-  const results = await transformTextureBatch(
-    client,
+  const results = await pipeline.transformBatch(
     texturesToTransform,
-    transformOptions,
-    (current, total) => {
-      completed = current;
-      console.log(`Progress: ${current}/${total} (${Math.round((current / total) * 100)}%)`);
+    {
+      ...transformOptions,
+      onProgress: (current: number, total: number) => {
+        completed = current;
+        console.log(`Progress: ${current}/${total} (${Math.round((current / total) * 100)}%)`);
+      },
     }
   );
 
@@ -132,8 +134,8 @@ async function main() {
   console.log('');
 
   // Display results
-  const successCount = results.filter(r => r.status === 'success').length;
-  const failedCount = results.filter(r => r.status === 'failed').length;
+  const successCount = results.filter((r) => r.status === 'success').length;
+  const failedCount = results.filter((r) => r.status === 'failed').length;
 
   console.log(`Success: ${successCount}`);
   console.log(`Failed: ${failedCount}`);
@@ -141,7 +143,7 @@ async function main() {
 
   // Save results
   console.log(`Saving results to ${outputDir}...`);
-  await saveTransformationResults(results, outputDir);
+  await pipeline.saveResults(results, outputDir);
   console.log('Done!');
   console.log('');
 

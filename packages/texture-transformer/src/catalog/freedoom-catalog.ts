@@ -4,8 +4,8 @@
  * Catalog of known Freedoom/DOOM textures with metadata and prompt templates
  */
 
-import type { CatalogEntry } from './types';
-import { TextureCategory } from './types';
+import type { CatalogEntry } from '../core/types';
+import { TextureCategory } from '../core/types';
 
 /**
  * Freedoom texture catalog
