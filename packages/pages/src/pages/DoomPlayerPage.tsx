@@ -61,9 +61,10 @@ export function DoomPlayerPage() {
     }
   };
 
-  // Fixed canvas resolution
-  const canvasWidth = 960;
-  const canvasHeight = 720;
+  // Fixed canvas resolution (DOOM standard resolution)
+  // Higher resolutions cause memory access errors in the WASM module
+  const canvasWidth = 640;
+  const canvasHeight = 480;
 
   // Calculate display dimensions
   const getDisplayDimensions = () => {

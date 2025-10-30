@@ -17,7 +17,11 @@ export default defineConfig({
       formats: ['es']
     },
     rollupOptions: {
-      external: ['react', 'react/jsx-runtime']
+      external: [
+        'react',
+        'react/jsx-runtime',
+        '@resvg/resvg-js', // Node.js native module for server-side SVG rendering
+      ]
     },
     emptyOutDir: false
   },

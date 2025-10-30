@@ -38,7 +38,7 @@ export const DoomCanvas = forwardRef<HTMLCanvasElement, DoomCanvasProps>(
           width: `${cssWidth}px`,
           height: `${cssHeight}px`,
           backgroundColor: '#000',
-          imageRendering: 'auto', // Use smooth scaling for high-res rendering
+          imageRendering: 'pixelated', // Use pixelated rendering for retro look
           ...style,
         }}
         className={className}

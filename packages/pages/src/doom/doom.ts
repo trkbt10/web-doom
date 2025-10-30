@@ -36,14 +36,18 @@ export class DoomEngine {
     'move-backward': 'ArrowDown',
     'turn-left': 'ArrowLeft',
     'turn-right': 'ArrowRight',
-    'strafe-left': 'Alt',
-    'strafe-right': 'Alt', // Will handle with Shift+Alt
+    'strafe-left': ',',   // DOOM default strafe left key
+    'strafe-right': '.',  // DOOM default strafe right key
     'fire': 'Control',
     'use': ' ', // Space
     'weapon-next': ']',
     'weapon-prev': '[',
     'menu': 'Escape',
+    'confirm': 'Enter', // For menu selection (New Game, etc.)
+    'automap': 'Tab',   // Show automap
   };
+  // Track pressed keys by their actual key value (not buttonId)
+  // to prevent duplicate events when multiple buttons map to the same key
   private pressedKeys = new Set<string>();
 
   constructor(config: DoomConfig) {
@@ -181,6 +185,7 @@ export class DoomEngine {
       window.Module = {
         onRuntimeInitialized: () => {
           this.isModuleReady = true;
+          console.log('[DOOM] WebAssembly runtime initialized');
           this.setStatus('Module ready. Select a WAD file to start.');
           this.config.onModuleReady?.();
         },
@@ -205,8 +210,18 @@ export class DoomEngine {
           // Handle memory errors
           if (text.includes('memory') || text.includes('out of bounds')) {
             console.error('[DOOM] Memory error:', text);
-            this.setStatus('Error: Memory access error. Try reloading the page.');
+            console.error('[DOOM] This usually means the WASM module ran out of memory.');
+            console.error('[DOOM] The module was built with 384MB initial memory, 1GB maximum.');
+            this.setStatus('Error: Memory access error. Please reload the page and try again.');
             this.config.onError?.(new Error(`Memory error: ${text}`));
+            return;
+          }
+
+          // Handle WAD resource errors
+          if (text.includes('not found') || text.includes('W_GetNumForName')) {
+            console.error('[DOOM] WAD resource error:', text);
+            this.setStatus('Error: WAD resource not found. Please check the WAD file.');
+            this.config.onError?.(new Error(`WAD error: ${text}`));
             return;
           }
 
@@ -223,6 +238,14 @@ export class DoomEngine {
             switch (code) {
               case 10:
                 this.setStatus('Game started!');
+                // Clear canvas on game start to prevent ghosting
+                if (this.config.canvas) {
+                  const gl = this.config.canvas.getContext('webgl') || this.config.canvas.getContext('webgl2');
+                  if (gl) {
+                    gl.clearColor(0, 0, 0, 1);
+                    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+                  }
+                }
                 this.config.onGameStart?.();
                 break;
               case 11:
@@ -251,7 +274,7 @@ export class DoomEngine {
         // SDL2 audio context will be set in preRun
         SDL2: this.audioContext ? { audioContext: this.audioContext } : undefined,
         // Note: Memory settings are configured at Emscripten build time in configure.ac
-        // INITIAL_MEMORY: 256MB, MAXIMUM_MEMORY: 512MB, ALLOW_MEMORY_GROWTH: true
+        // TOTAL_MEMORY: 64MB, ALLOW_MEMORY_GROWTH: 0 (disabled for stability)
       };
 
       // Log audio context status
@@ -474,35 +497,139 @@ export class DoomEngine {
     if (!key) return;
 
     try {
-      // Track pressed keys to avoid duplicate events
+      // Track pressed keys by their actual key value to avoid duplicate events
+      // (multiple buttons might map to the same key)
       if (pressed) {
-        if (this.pressedKeys.has(buttonId)) return;
-        this.pressedKeys.add(buttonId);
+        if (this.pressedKeys.has(key)) {
+          console.log(`[Controller] Skipping duplicate keydown for ${buttonId} → ${key}`);
+          return;
+        }
+        this.pressedKeys.add(key);
       } else {
-        this.pressedKeys.delete(buttonId);
+        if (!this.pressedKeys.has(key)) {
+          console.log(`[Controller] Skipping duplicate keyup for ${buttonId} → ${key}`);
+          return;
+        }
+        this.pressedKeys.delete(key);
       }
 
-      // Create keyboard event with all necessary properties
+      // Method 1: Try using SDL2 API directly (most reliable for Emscripten)
+      if (this.sendSDLKeyEvent(key, pressed)) {
+        console.log(`[Controller] SDL: ${pressed ? 'down' : 'up'} ${buttonId} → ${key}`);
+        return;
+      }
+
+      // Method 2: Fallback to creating proper keyboard event
       const eventType = pressed ? 'keydown' : 'keyup';
       const keyCode = this.getKeyCodeNumber(key);
+      const code = this.getKeyCode(key);
 
-      // Create event with deprecated but necessary properties for Emscripten
+      // Create base event
       const event = new KeyboardEvent(eventType, {
         key,
-        code: this.getKeyCode(key),
-        keyCode,
-        which: keyCode,
+        code,
         bubbles: true,
         cancelable: true,
+        view: window,
       });
 
-      // Dispatch to document (Emscripten listens on document, not canvas)
+      // Override readonly properties using Object.defineProperty
+      // (Emscripten's SDL checks these legacy properties)
+      try {
+        Object.defineProperty(event, 'keyCode', { value: keyCode });
+        Object.defineProperty(event, 'which', { value: keyCode });
+      } catch (e) {
+        // Some browsers don't allow this - continue anyway
+      }
+
+      // Dispatch to document only (Emscripten listens on document)
+      // Sending to both canvas and document causes duplicate events
       document.dispatchEvent(event);
 
-      console.log(`[Controller] ${eventType} ${buttonId} → ${key} (${keyCode})`);
+      console.log(`[Controller] Event: ${eventType} ${buttonId} → ${key} (${keyCode})`);
     } catch (error) {
       console.error('Failed to handle controller input:', error);
     }
+  }
+
+  /**
+   * Send key event via SDL2 API if available
+   * @returns true if SDL2 API was used successfully
+   */
+  private sendSDLKeyEvent(key: string, pressed: boolean): boolean {
+    try {
+      // Check if SDL2 API is available in Module
+      const Module = window.Module;
+      if (!Module || !Module.SDL2) {
+        return false;
+      }
+
+      // Get SDL scancode for the key
+      const scancode = this.getSDLScancode(key);
+      if (scancode === null) {
+        return false;
+      }
+
+      // Check if SDL_SendKeyboardKey function exists
+      // This is exposed by Emscripten's SDL implementation
+      if (typeof Module._SDL_SendKeyboardKey === 'function') {
+        // SDL_SendKeyboardKey(SDL_PRESSED or SDL_RELEASED, SDL_Scancode)
+        const SDL_PRESSED = 1;
+        const SDL_RELEASED = 0;
+        Module._SDL_SendKeyboardKey(pressed ? SDL_PRESSED : SDL_RELEASED, scancode);
+        return true;
+      }
+
+      // Alternative: Try using the asm.js/wasm exported function
+      if (Module.asm && typeof Module.asm._SDL_SendKeyboardKey === 'function') {
+        const SDL_PRESSED = 1;
+        const SDL_RELEASED = 0;
+        Module.asm._SDL_SendKeyboardKey(pressed ? SDL_PRESSED : SDL_RELEASED, scancode);
+        return true;
+      }
+
+      return false;
+    } catch (error) {
+      console.warn('SDL2 API call failed:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Map key string to SDL scancode
+   * SDL scancode reference: https://wiki.libsdl.org/SDL2/SDL_Scancode
+   */
+  private getSDLScancode(key: string): number | null {
+    const scancodeMap: { [key: string]: number } = {
+      // Arrow keys
+      'ArrowUp': 82,      // SDL_SCANCODE_UP
+      'ArrowDown': 81,    // SDL_SCANCODE_DOWN
+      'ArrowLeft': 80,    // SDL_SCANCODE_LEFT
+      'ArrowRight': 79,   // SDL_SCANCODE_RIGHT
+      // Modifiers
+      'Control': 224,     // SDL_SCANCODE_LCTRL
+      'Alt': 226,         // SDL_SCANCODE_LALT
+      'Shift': 225,       // SDL_SCANCODE_LSHIFT
+      // Common keys
+      ' ': 44,            // SDL_SCANCODE_SPACE
+      'Escape': 41,       // SDL_SCANCODE_ESCAPE
+      '[': 47,            // SDL_SCANCODE_LEFTBRACKET
+      ']': 48,            // SDL_SCANCODE_RIGHTBRACKET
+      'Enter': 40,        // SDL_SCANCODE_RETURN
+      'Tab': 43,          // SDL_SCANCODE_TAB
+      ',': 54,            // SDL_SCANCODE_COMMA
+      '.': 55,            // SDL_SCANCODE_PERIOD
+      // Letters (a-z are scancodes 4-29)
+      'a': 4, 'b': 5, 'c': 6, 'd': 7, 'e': 8, 'f': 9, 'g': 10,
+      'h': 11, 'i': 12, 'j': 13, 'k': 14, 'l': 15, 'm': 16,
+      'n': 17, 'o': 18, 'p': 19, 'q': 20, 'r': 21, 's': 22,
+      't': 23, 'u': 24, 'v': 25, 'w': 26, 'x': 27, 'y': 28, 'z': 29,
+      // Numbers (1-9,0 are scancodes 30-39)
+      '1': 30, '2': 31, '3': 32, '4': 33, '5': 34,
+      '6': 35, '7': 36, '8': 37, '9': 38, '0': 39,
+    };
+
+    return scancodeMap[key] ?? null;
   }
 
   /**
@@ -520,6 +647,10 @@ export class DoomEngine {
       'Alt': 'AltLeft',
       '[': 'BracketLeft',
       ']': 'BracketRight',
+      ',': 'Comma',
+      '.': 'Period',
+      'Enter': 'Enter',
+      'Tab': 'Tab',
     };
     return codeMap[key] || key;
   }
@@ -539,6 +670,10 @@ export class DoomEngine {
       'Alt': 18,
       '[': 219,
       ']': 221,
+      ',': 188,
+      '.': 190,
+      'Enter': 13,
+      'Tab': 9,
     };
     return keyCodeMap[key] || key.charCodeAt(0);
   }

@@ -71,13 +71,13 @@ export const doomControllerSchema: ControllerSchema = {
       label: 'L',
       hitRegion: {
         type: 'rect',
-        rect: { x: 20, y: 15, width: 70, height: 35 },
+        rect: { x: 20, y: 10, width: 80, height: 45 },
       },
       gamepadIndex: 4,
       visual: {
         type: 'rect',
-        position: { x: 55, y: 33 },
-        size: 50,
+        position: { x: 60, y: 32 },
+        size: 70,
         color: '#3a3a3a',
       },
     } as ButtonSchema,
@@ -89,13 +89,13 @@ export const doomControllerSchema: ControllerSchema = {
       label: 'R',
       hitRegion: {
         type: 'rect',
-        rect: { x: 550, y: 15, width: 70, height: 35 },
+        rect: { x: 540, y: 10, width: 80, height: 45 },
       },
       gamepadIndex: 5,
       visual: {
         type: 'rect',
-        position: { x: 585, y: 33 },
-        size: 50,
+        position: { x: 580, y: 32 },
+        size: 70,
         color: '#3a3a3a',
       },
     } as ButtonSchema,
@@ -145,15 +145,15 @@ export const doomControllerSchema: ControllerSchema = {
       label: 'SELECT',
       hitRegion: {
         type: 'rect',
-        rect: { x: 240, y: 200, width: 65, height: 28 },
+        rect: { x: 230, y: 200, width: 80, height: 28 },
       },
       gamepadIndex: 8,
       visual: {
         type: 'rect',
-        position: { x: 272, y: 214 },
-        size: 45,
+        position: { x: 270, y: 214 },
+        size: 70,
         color: '#2a2a2a',
-        icon: 'SEL',
+        icon: 'SELECT',
       },
     } as ButtonSchema,
 
@@ -164,15 +164,15 @@ export const doomControllerSchema: ControllerSchema = {
       label: 'START',
       hitRegion: {
         type: 'rect',
-        rect: { x: 335, y: 200, width: 65, height: 28 },
+        rect: { x: 330, y: 200, width: 80, height: 28 },
       },
       gamepadIndex: 9,
       visual: {
         type: 'rect',
-        position: { x: 367, y: 214 },
-        size: 45,
+        position: { x: 370, y: 214 },
+        size: 70,
         color: '#2a2a2a',
-        icon: 'STA',
+        icon: 'START',
       },
     } as ButtonSchema,
 
@@ -192,6 +192,44 @@ export const doomControllerSchema: ControllerSchema = {
         size: 40,
         color: '#3a3a3a',
         icon: '+',
+      },
+    } as ButtonSchema,
+
+    // Y Button (right side, upper-left) - Confirm/Enter for menus
+    {
+      id: 'confirm',
+      type: 'action',
+      label: 'Y',
+      hitRegion: {
+        type: 'circle',
+        circle: { cx: 470, cy: 80, r: 28 },
+      },
+      gamepadIndex: 3,
+      visual: {
+        type: 'circle',
+        position: { x: 470, y: 80 },
+        size: 56,
+        color: '#2a2a2a',
+        icon: 'Y',
+      },
+    } as ButtonSchema,
+
+    // X Button (right side, lower-left) - Automap
+    {
+      id: 'automap',
+      type: 'action',
+      label: 'X',
+      hitRegion: {
+        type: 'circle',
+        circle: { cx: 410, cy: 140, r: 28 },
+      },
+      gamepadIndex: 2,
+      visual: {
+        type: 'circle',
+        position: { x: 410, y: 140 },
+        size: 56,
+        color: '#2a2a2a',
+        icon: 'X',
       },
     } as ButtonSchema,
   ],
@@ -268,13 +306,13 @@ export const doomControllerSchemaPortrait: ControllerSchema = {
       label: 'L',
       hitRegion: {
         type: 'rect',
-        rect: { x: 20, y: 15, width: 85, height: 45 },
+        rect: { x: 20, y: 10, width: 90, height: 50 },
       },
       gamepadIndex: 4,
       visual: {
         type: 'rect',
-        position: { x: 62, y: 38 },
-        size: 60,
+        position: { x: 65, y: 35 },
+        size: 80,
         color: '#3a3a3a',
       },
     } as ButtonSchema,
@@ -286,13 +324,13 @@ export const doomControllerSchemaPortrait: ControllerSchema = {
       label: 'R',
       hitRegion: {
         type: 'rect',
-        rect: { x: 375, y: 15, width: 85, height: 45 },
+        rect: { x: 370, y: 10, width: 90, height: 50 },
       },
       gamepadIndex: 5,
       visual: {
         type: 'rect',
-        position: { x: 418, y: 38 },
-        size: 60,
+        position: { x: 415, y: 35 },
+        size: 80,
         color: '#3a3a3a',
       },
     } as ButtonSchema,
@@ -342,15 +380,15 @@ export const doomControllerSchemaPortrait: ControllerSchema = {
       label: 'SELECT',
       hitRegion: {
         type: 'rect',
-        rect: { x: 150, y: 340, width: 75, height: 35 },
+        rect: { x: 140, y: 340, width: 90, height: 35 },
       },
       gamepadIndex: 8,
       visual: {
         type: 'rect',
-        position: { x: 187, y: 357 },
-        size: 55,
+        position: { x: 185, y: 357 },
+        size: 80,
         color: '#2a2a2a',
-        icon: 'SEL',
+        icon: 'SELECT',
       },
     } as ButtonSchema,
 
@@ -361,15 +399,15 @@ export const doomControllerSchemaPortrait: ControllerSchema = {
       label: 'START',
       hitRegion: {
         type: 'rect',
-        rect: { x: 255, y: 340, width: 75, height: 35 },
+        rect: { x: 250, y: 340, width: 90, height: 35 },
       },
       gamepadIndex: 9,
       visual: {
         type: 'rect',
-        position: { x: 292, y: 357 },
-        size: 55,
+        position: { x: 295, y: 357 },
+        size: 80,
         color: '#2a2a2a',
-        icon: 'STA',
+        icon: 'START',
       },
     } as ButtonSchema,
 
@@ -389,6 +427,44 @@ export const doomControllerSchemaPortrait: ControllerSchema = {
         size: 50,
         color: '#3a3a3a',
         icon: '+',
+      },
+    } as ButtonSchema,
+
+    // Y Button (right side, upper-left) - Confirm/Enter for menus
+    {
+      id: 'confirm',
+      type: 'action',
+      label: 'Y',
+      hitRegion: {
+        type: 'circle',
+        circle: { cx: 340, cy: 120, r: 34 },
+      },
+      gamepadIndex: 3,
+      visual: {
+        type: 'circle',
+        position: { x: 340, y: 120 },
+        size: 68,
+        color: '#2a2a2a',
+        icon: 'Y',
+      },
+    } as ButtonSchema,
+
+    // X Button (right side, lower-left) - Automap
+    {
+      id: 'automap',
+      type: 'action',
+      label: 'X',
+      hitRegion: {
+        type: 'circle',
+        circle: { cx: 270, cy: 210, r: 34 },
+      },
+      gamepadIndex: 2,
+      visual: {
+        type: 'circle',
+        position: { x: 270, y: 210 },
+        size: 68,
+        color: '#2a2a2a',
+        icon: 'X',
       },
     } as ButtonSchema,
   ],

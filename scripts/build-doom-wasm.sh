@@ -53,6 +53,37 @@ echo "Cleaning previous build..."
 echo "✓ Clean complete"
 echo ""
 
+# Patch default.cfg to optimize for controller input
+echo "Patching default.cfg for controller input..."
+if [ -f "src/default.cfg" ]; then
+    # Use WebGL renderer (software renderer is not fully supported)
+    sed -i '' 's/force_software_renderer[[:space:]]*1/force_software_renderer       0/' "src/default.cfg"
+
+    # Disable mouse, enable joystick
+    sed -i '' 's/use_mouse[[:space:]]*1/use_mouse                     0/' "src/default.cfg"
+    sed -i '' 's/use_joystick[[:space:]]*0/use_joystick                  1/' "src/default.cfg"
+
+    # Map keys to arrow keys (SDL scancodes)
+    # key_up: 82 (ArrowUp), key_down: 81 (ArrowDown)
+    # key_left: 80 (ArrowLeft), key_right: 79 (ArrowRight)
+    sed -i '' 's/key_right[[:space:]]*[0-9]*/key_right                     79/' "src/default.cfg"
+    sed -i '' 's/key_left[[:space:]]*[0-9]*/key_left                      80/' "src/default.cfg"
+    sed -i '' 's/key_up[[:space:]]*[0-9]*/key_up                        82/' "src/default.cfg"
+    sed -i '' 's/key_down[[:space:]]*[0-9]*/key_down                      81/' "src/default.cfg"
+
+    # Add novert and always_run for proper movement (add after fullscreen line)
+    if ! grep -q "^novert" "src/default.cfg"; then
+        sed -i '' '/^fullscreen/a\
+novert                        1\
+always_run                    1' "src/default.cfg"
+    fi
+
+    echo "✓ Controller optimizations applied to default.cfg"
+else
+    echo "Warning: default.cfg not found"
+fi
+echo ""
+
 # Build
 echo "Building DOOM WASM (this may take several minutes)..."
 ./scripts/build.sh

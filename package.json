@@ -15,7 +15,9 @@
     "typecheck": "tsgo --noEmit -p packages/wad && tsgo --noEmit -p packages/game-controller && tsgo --noEmit -p packages/web-doom && tsgo --noEmit -p packages/wad-viewer && tsgo --noEmit -p packages/texture-transformer && tsgo --noEmit -p packages/pages",
     "test": "bun run --filter \"./packages/*\" test",
     "lint": "bun run typecheck",
-    "clean": "rm -rf packages/*/dist packages/*/tsconfig.tsbuildinfo node_modules bun.lockb"
+    "clean": "rm -rf packages/*/dist packages/*/tsconfig.tsbuildinfo node_modules bun.lockb",
+    "example:controller": "bun run packages/game-controller/examples/transform-controller.ts",
+    "example:controller:batch": "bun run packages/game-controller/examples/batch-transform.ts"
   },
   "devDependencies": {
     "@types/bun": "latest",
@@ -28,5 +30,9 @@
   "engines": {
     "node": ">=18.0.0",
     "bun": ">=1.0.0"
+  },
+  "dependencies": {
+    "@google/genai": "^1.28.0",
+    "@resvg/resvg-js": "^2.6.2"
   }
 }

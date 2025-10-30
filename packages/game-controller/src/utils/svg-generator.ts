@@ -21,6 +21,7 @@ export function generateControllerSVG(schema: ControllerSchema): string {
         <style>
           .button { fill: var(--button-color); stroke: rgba(255,255,255,0.3); stroke-width: 2; }
           .button-label { fill: white; font-family: Arial, sans-serif; font-size: 20px; font-weight: bold; text-anchor: middle; dominant-baseline: middle; user-select: none; }
+          .button-label-small { fill: white; font-family: Arial, sans-serif; font-size: 14px; font-weight: bold; text-anchor: middle; dominant-baseline: middle; user-select: none; }
           .dpad-part { fill: #4a4a4a; stroke: rgba(255,255,255,0.3); stroke-width: 2; }
           .shoulder { fill: #5a5a5a; stroke: rgba(255,255,255,0.3); stroke-width: 2; rx: 8; }
         </style>
@@ -59,12 +60,17 @@ function generateButtonSVG(button: ButtonSchema | DPadSchema | StickSchema): str
   if (type === 'rect' || button.type === 'shoulder') {
     const rectX = position.x - size / 2;
     const rectY = position.y - size / 2;
+    const rectHeight = button.type === 'shoulder' ? size * 0.5 : size * 0.6;
     const className = button.type === 'shoulder' ? 'shoulder' : 'button';
+
+    // Use smaller font for longer text (like SELECT, START)
+    const text = icon || label;
+    const labelClass = text.length > 3 ? 'button-label-small' : 'button-label';
 
     return `
       <g id="${id}">
-        <rect class="${className}" x="${rectX}" y="${rectY}" width="${size}" height="${size * 0.6}" style="--button-color: ${buttonColor}"/>
-        <text class="button-label" x="${position.x}" y="${position.y}">${icon || label}</text>
+        <rect class="${className}" x="${rectX}" y="${rectY}" width="${size}" height="${rectHeight}" style="--button-color: ${buttonColor}"/>
+        <text class="${labelClass}" x="${position.x}" y="${position.y}">${text}</text>
       </g>
     `;
   }

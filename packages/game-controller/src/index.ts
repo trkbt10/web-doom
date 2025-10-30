@@ -46,6 +46,41 @@ export {
 // Input handler (for advanced usage)
 export { InputHandler } from './input/input-handler';
 
+// Image transformation (AI-powered styling)
+export type {
+  ControllerImage,
+  ControllerTransformResult,
+  ControllerTransformOptions,
+  ImageTransformBackendOptions,
+  NanobananaTransformOptions,
+  GeminiTransformOptions,
+  ImageTransformerBackend,
+  ImageTransformerConfig,
+  ControllerAsset,
+  ControllerAssetsManifest,
+} from './transformers';
+
+export {
+  buildControllerPrompt,
+  svgToPng,
+  svgToPngNode,
+  extractBase64Browser,
+  extractBase64,
+  getImageDimensions,
+  isValidImageDataUrl,
+  isNodeEnvironment,
+  NanobananaBackend,
+  createNanobananaBackend,
+  GeminiBackend,
+  createGeminiBackend,
+  ImageTransformerClient,
+  createImageTransformerClient,
+  transformController,
+  getAssetsByOrientation,
+  getAssetById,
+  getAssetUrl,
+} from './transformers';
+
 // Debug utilities
 export function enableControllerDebug(enabled: boolean = true): void {
   (window as any).__CONTROLLER_DEBUG__ = enabled;

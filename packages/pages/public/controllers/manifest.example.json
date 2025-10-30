@@ -1,0 +1,132 @@
+{
+  "version": "1.0.0",
+  "generatedAt": "2025-10-30T10:00:00.000Z",
+  "backend": "gemini",
+  "totalAssets": 10,
+  "orientations": {
+    "landscape": 5,
+    "portrait": 5
+  },
+  "assets": [
+    {
+      "id": "cyberpunk-landscape",
+      "name": "Cyberpunk Neon (Landscape)",
+      "filename": "controller-landscape-cyberpunk.png",
+      "orientation": "landscape",
+      "style": "cyberpunk neon style with holographic buttons and futuristic design, glowing edges",
+      "width": 1280,
+      "height": 560,
+      "model": "gemini-2.5-flash-image",
+      "prompt": "Transform this game controller image. A DOOM Controller game controller with buttons and controls. Style: cyberpunk neon style with holographic buttons and futuristic design, glowing edges.",
+      "generatedAt": "2025-10-30T10:00:00.000Z"
+    },
+    {
+      "id": "cyberpunk-portrait",
+      "name": "Cyberpunk Neon (Portrait)",
+      "filename": "controller-portrait-cyberpunk.png",
+      "orientation": "portrait",
+      "style": "cyberpunk neon style with holographic buttons and futuristic design, glowing edges",
+      "width": 960,
+      "height": 840,
+      "model": "gemini-2.5-flash-image",
+      "prompt": "Transform this game controller image. A DOOM Controller (Portrait) game controller with buttons and controls. Style: cyberpunk neon style with holographic buttons and futuristic design, glowing edges.",
+      "generatedAt": "2025-10-30T10:00:30.000Z"
+    },
+    {
+      "id": "retro-landscape",
+      "name": "Retro Arcade (Landscape)",
+      "filename": "controller-landscape-retro.png",
+      "orientation": "landscape",
+      "style": "retro arcade style with 80s aesthetic, pixelated details, CRT scanlines",
+      "width": 1280,
+      "height": 560,
+      "model": "gemini-2.5-flash-image",
+      "prompt": "Transform this game controller image. A DOOM Controller game controller with buttons and controls. Style: retro arcade style with 80s aesthetic, pixelated details, CRT scanlines.",
+      "generatedAt": "2025-10-30T10:01:00.000Z"
+    },
+    {
+      "id": "retro-portrait",
+      "name": "Retro Arcade (Portrait)",
+      "filename": "controller-portrait-retro.png",
+      "orientation": "portrait",
+      "style": "retro arcade style with 80s aesthetic, pixelated details, CRT scanlines",
+      "width": 960,
+      "height": 840,
+      "model": "gemini-2.5-flash-image",
+      "prompt": "Transform this game controller image. A DOOM Controller (Portrait) game controller with buttons and controls. Style: retro arcade style with 80s aesthetic, pixelated details, CRT scanlines.",
+      "generatedAt": "2025-10-30T10:01:30.000Z"
+    },
+    {
+      "id": "steampunk-landscape",
+      "name": "Steampunk (Landscape)",
+      "filename": "controller-landscape-steampunk.png",
+      "orientation": "landscape",
+      "style": "steampunk mechanical with brass buttons, copper gears, Victorian ornaments",
+      "width": 1280,
+      "height": 560,
+      "model": "gemini-2.5-flash-image",
+      "prompt": "Transform this game controller image. A DOOM Controller game controller with buttons and controls. Style: steampunk mechanical with brass buttons, copper gears, Victorian ornaments.",
+      "generatedAt": "2025-10-30T10:02:00.000Z"
+    },
+    {
+      "id": "steampunk-portrait",
+      "name": "Steampunk (Portrait)",
+      "filename": "controller-portrait-steampunk.png",
+      "orientation": "portrait",
+      "style": "steampunk mechanical with brass buttons, copper gears, Victorian ornaments",
+      "width": 960,
+      "height": 840,
+      "model": "gemini-2.5-flash-image",
+      "prompt": "Transform this game controller image. A DOOM Controller (Portrait) game controller with buttons and controls. Style: steampunk mechanical with brass buttons, copper gears, Victorian ornaments.",
+      "generatedAt": "2025-10-30T10:02:30.000Z"
+    },
+    {
+      "id": "neon-landscape",
+      "name": "Neon Glow (Landscape)",
+      "filename": "controller-landscape-neon.png",
+      "orientation": "landscape",
+      "style": "neon pink and blue glowing buttons with dark background, vibrant colors",
+      "width": 1280,
+      "height": 560,
+      "model": "gemini-2.5-flash-image",
+      "prompt": "Transform this game controller image. A DOOM Controller game controller with buttons and controls. Style: neon pink and blue glowing buttons with dark background, vibrant colors.",
+      "generatedAt": "2025-10-30T10:03:00.000Z"
+    },
+    {
+      "id": "neon-portrait",
+      "name": "Neon Glow (Portrait)",
+      "filename": "controller-portrait-neon.png",
+      "orientation": "portrait",
+      "style": "neon pink and blue glowing buttons with dark background, vibrant colors",
+      "width": 960,
+      "height": 840,
+      "model": "gemini-2.5-flash-image",
+      "prompt": "Transform this game controller image. A DOOM Controller (Portrait) game controller with buttons and controls. Style: neon pink and blue glowing buttons with dark background, vibrant colors.",
+      "generatedAt": "2025-10-30T10:03:30.000Z"
+    },
+    {
+      "id": "metal-landscape",
+      "name": "Metal Industrial (Landscape)",
+      "filename": "controller-landscape-metal.png",
+      "orientation": "landscape",
+      "style": "industrial metal style with chrome buttons, steel texture, mechanical details",
+      "width": 1280,
+      "height": 560,
+      "model": "gemini-2.5-flash-image",
+      "prompt": "Transform this game controller image. A DOOM Controller game controller with buttons and controls. Style: industrial metal style with chrome buttons, steel texture, mechanical details.",
+      "generatedAt": "2025-10-30T10:04:00.000Z"
+    },
+    {
+      "id": "metal-portrait",
+      "name": "Metal Industrial (Portrait)",
+      "filename": "controller-portrait-metal.png",
+      "orientation": "portrait",
+      "style": "industrial metal style with chrome buttons, steel texture, mechanical details",
+      "width": 960,
+      "height": 840,
+      "model": "gemini-2.5-flash-image",
+      "prompt": "Transform this game controller image. A DOOM Controller (Portrait) game controller with buttons and controls. Style: industrial metal style with chrome buttons, steel texture, mechanical details.",
+      "generatedAt": "2025-10-30T10:04:30.000Z"
+    }
+  ]
+}
