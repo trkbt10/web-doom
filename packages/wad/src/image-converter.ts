@@ -49,29 +49,23 @@ export interface CanvasToPictureOptions {
 }
 
 /**
- * Convert DOOM picture to Canvas
+ * Convert DOOM picture to ImageData
  */
-export function pictureToCanvas(
+export function pictureToImageData(
   picture: DoomPicture,
   options: PictureToCanvasOptions = {}
-): HTMLCanvasElement {
+): ImageData {
   const {
     palette = DEFAULT_DOOM_PALETTE,
     backgroundColor = [0, 0, 0, 0],
     scale = 1,
   } = options;
 
-  const canvas = document.createElement('canvas');
-  canvas.width = picture.header.width * scale;
-  canvas.height = picture.header.height * scale;
-
-  const ctx = canvas.getContext('2d');
-  if (!ctx) {
-    throw new Error('Failed to get 2D context');
-  }
+  const width = picture.header.width * scale;
+  const height = picture.header.height * scale;
 
   // Create image data
-  const imageData = ctx.createImageData(canvas.width, canvas.height);
+  const imageData = new ImageData(width, height);
   const data = imageData.data;
 
   for (let y = 0; y < picture.header.height; y++) {
@@ -92,7 +86,7 @@ export function pictureToCanvas(
       // Apply scale
       for (let sy = 0; sy < scale; sy++) {
         for (let sx = 0; sx < scale; sx++) {
-          const pixelIndex = ((y * scale + sy) * canvas.width + (x * scale + sx)) * 4;
+          const pixelIndex = ((y * scale + sy) * width + (x * scale + sx)) * 4;
           data[pixelIndex] = r;
           data[pixelIndex + 1] = g;
           data[pixelIndex + 2] = b;
@@ -102,7 +96,37 @@ export function pictureToCanvas(
     }
   }
 
+  return imageData;
+}
+
+/**
+ * Convert DOOM picture to Canvas
+ */
+export function pictureToCanvas(
+  picture: DoomPicture,
+  options: PictureToCanvasOptions = {}
+): HTMLCanvasElement {
+  const {
+    scale = 1,
+  } = options;
+
+  const width = picture.header.width * scale;
+  const height = picture.header.height * scale;
+
+  // Create canvas
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+
+  const ctx = canvas.getContext('2d');
+  if (!ctx) {
+    throw new Error('Failed to get 2D context');
+  }
+
+  // Convert to ImageData and put on canvas
+  const imageData = pictureToImageData(picture, options);
   ctx.putImageData(imageData, 0, 0);
+
   return canvas;
 }
 

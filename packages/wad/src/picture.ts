@@ -112,7 +112,7 @@ export function decodePictureColumn(
     const length = view.getUint8(currentOffset);
     currentOffset++;
 
-    // Skip unused padding byte
+    // Skip unused padding byte (dummy byte before pixel data)
     currentOffset++;
 
     // Check if we can read pixel data
@@ -124,7 +124,7 @@ export function decodePictureColumn(
     const pixels = new Uint8Array(buffer, currentOffset, length);
     currentOffset += length;
 
-    // Skip unused padding byte
+    // Skip unused padding byte (dummy byte after pixel data)
     currentOffset++;
 
     posts.push({
@@ -237,17 +237,24 @@ export function encodePictureHeader(header: DoomPictureHeader): ArrayBuffer {
 
 /**
  * Encode a single column
+ *
+ * DOOM picture format for each post:
+ * - topdelta: uint8 (y offset)
+ * - length: uint8 (number of pixels)
+ * - padding: uint8 (dummy byte, usually 0)
+ * - pixels: uint8[length] (palette indices)
+ * - padding: uint8 (dummy byte, usually 0)
  */
 export function encodePictureColumn(column: DoomPictureColumn): Uint8Array {
   const parts: Uint8Array[] = [];
 
   for (const post of column) {
-    const postData = new Uint8Array(4 + post.pixels.length + 1);
+    const postData = new Uint8Array(4 + post.pixels.length);
     postData[0] = post.topdelta;
     postData[1] = post.pixels.length;
-    postData[2] = 0; // padding
+    postData[2] = 0; // padding before pixels
     postData.set(post.pixels, 3);
-    postData[3 + post.pixels.length] = 0; // padding
+    postData[3 + post.pixels.length] = 0; // padding after pixels
     parts.push(postData);
   }
 

@@ -8,6 +8,12 @@ export default defineConfig({
     outDir: 'dist',
     emptyOutDir: true,
   },
+  resolve: {
+    dedupe: ['three'], // Deduplicate Three.js to avoid multiple instances
+  },
+  optimizeDeps: {
+    include: ['three', 'js-dos'], // Pre-bundle Three.js and js-dos for faster loading
+  },
   test: {
     globals: true,
     environment: 'jsdom'

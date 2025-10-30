@@ -14,28 +14,16 @@ function HomePage(): ReactElement {
         <section className="home-features">
           <h2>Features</h2>
           <div className="features-grid">
+            <div className="feature-card" style={{ backgroundColor: '#2a2a2a', border: '2px solid #4CAF50' }}>
+              <h3>🎮 DOOM Player (WASM) ⭐</h3>
+              <p>完全版DOOMランタイム！ブラウザでDOOMをプレイできます。WebAssemblyベースの高速実行。</p>
+              <Link to="/doom-player" className="feature-link" style={{ color: '#4CAF50' }}>DOOM起動 →</Link>
+            </div>
+
             <div className="feature-card">
               <h3>WAD Viewer</h3>
               <p>View and analyze DOOM WAD files in your browser. Inspect lumps, validate structure, and explore game data.</p>
               <Link to="/wad-viewer" className="feature-link">Open WAD Viewer →</Link>
-            </div>
-
-            <div className="feature-card">
-              <h3>Web DOOM</h3>
-              <p>Play DOOM directly in your browser. Load WAD files and experience the classic game on modern web technology.</p>
-              <Link to="/web-doom" className="feature-link">Launch Web DOOM →</Link>
-            </div>
-
-            <div className="feature-card">
-              <h3>Web DOOM - 2D Renderer</h3>
-              <p>Top-down view of DOOM using Canvas 2D API. Great for debugging and understanding map layouts.</p>
-              <Link to="/web-doom-2d" className="feature-link">Launch 2D Renderer →</Link>
-            </div>
-
-            <div className="feature-card">
-              <h3>Web DOOM - 3D Renderer</h3>
-              <p>First-person 3D view using raycasting. Experience DOOM with texture mapping and immersive gameplay.</p>
-              <Link to="/web-doom-3d" className="feature-link">Launch 3D Renderer →</Link>
             </div>
 
             <div className="feature-card">
@@ -55,16 +43,16 @@ function HomePage(): ReactElement {
         <section className="home-about">
           <h2>About This Project</h2>
           <p>
-            This project is a complete implementation of the DOOM engine in TypeScript,
-            running entirely in the browser. It includes WAD file parsing, image conversion,
-            and the game engine itself.
+            ブラウザで動作するDOOMプラットフォーム。WADファイル解析、画像変換、
+            そして完全なDOOMランタイム（js-dos）を統合しています。
           </p>
           <div className="tech-stack">
             <h3>Technology Stack</h3>
             <ul>
               <li>TypeScript for type-safe development</li>
               <li>React 18 for UI components</li>
-              <li>Canvas API for rendering</li>
+              <li>js-dos for DOOM runtime (WebAssembly DOSBox)</li>
+              <li>Canvas API for WAD viewing and image conversion</li>
               <li>Vite for fast development and building</li>
               <li>React Router for navigation</li>
             </ul>

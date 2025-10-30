@@ -83,9 +83,3 @@ bun run clean
 - **Build Tool**: Vite
 - **UI Framework**: React (Pages用)
 - **Monorepo**: Bun Workspaces
-
-## ライセンス
-
-このプロジェクトはMITライセンスの下で公開されています。
-
-ただし、DOOMの元のゲームデータ（WADファイル）は、それぞれのライセンスに従います。Shareware版以外のWADファイルを使用する場合は、正規に購入してください。

@@ -3,9 +3,7 @@ import { HashRouter, Routes, Route } from 'react-router-dom';
 import Layout from './components/Layout';
 import HomePage from './pages/HomePage';
 import WadViewerPage from './pages/WadViewerPage';
-import WebDoomPage from './pages/WebDoomPage';
-import WebDoom2DPage from './pages/WebDoom2DPage';
-import WebDoom3DPage from './pages/WebDoom3DPage';
+import { DoomPlayerPage } from './pages/DoomPlayerPage';
 import ImageConverterPage from './pages/ImageConverterPage';
 import GameControllerPage from './pages/GameControllerPage';
 
@@ -16,9 +14,7 @@ function App(): ReactElement {
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/wad-viewer/*" element={<WadViewerPage />} />
-          <Route path="/web-doom" element={<WebDoomPage />} />
-          <Route path="/web-doom-2d" element={<WebDoom2DPage />} />
-          <Route path="/web-doom-3d" element={<WebDoom3DPage />} />
+          <Route path="/doom-player" element={<DoomPlayerPage />} />
           <Route path="/image-converter" element={<ImageConverterPage />} />
           <Route path="/game-controller" element={<GameControllerPage />} />
         </Routes>

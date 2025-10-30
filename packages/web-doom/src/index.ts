@@ -124,7 +124,8 @@ export async function createDoomEngine(config: CreateDoomEngineConfig): Promise<
     loadMap: async (mapName: string) => {
       const map = parseMap(config.wad, mapName);
       if (!map) {
-        throw new Error(`Failed to load map: ${mapName}`);
+        const availableMaps = getMapNames(config.wad);
+        throw new Error(`Failed to load map: ${mapName}. Available maps: ${availableMaps.join(', ') || 'none'}`);
       }
 
       gameState = setMap(gameState, map);

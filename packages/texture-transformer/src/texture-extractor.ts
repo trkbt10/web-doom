@@ -99,22 +99,67 @@ export function isPictureLump(lump: WadLump): boolean {
 
 /**
  * Convert picture to base64 PNG data URL
- * Note: This function requires a browser environment with Canvas API
+ * Note: This function works in both browser and Node.js environments
  */
 export function pictureToBase64PNG(picture: DoomPicture, palette: [number, number, number][]): string {
   // Check if running in browser environment
-  if (typeof document === 'undefined' || typeof HTMLCanvasElement === 'undefined') {
-    // In Node.js environment, return placeholder
-    // Actual conversion requires canvas package or browser environment
-    console.warn('Canvas API not available in Node.js environment. Texture extraction will not include image data.');
-    return 'data:image/png;base64,';
+  if (typeof document !== 'undefined' && typeof HTMLCanvasElement !== 'undefined') {
+    try {
+      const canvas = pictureToCanvas(picture, { palette });
+      return canvas.toDataURL('image/png');
+    } catch (error) {
+      console.warn('Failed to convert picture to PNG:', error);
+      return 'data:image/png;base64,';
+    }
   }
 
+  // Node.js environment with canvas package
   try {
-    const canvas = pictureToCanvas(picture, { palette });
+    // Dynamic import for Node.js canvas package
+    const canvasModule = require('canvas');
+    const { createCanvas } = canvasModule;
+
+    const width = picture.header.width;
+    const height = picture.header.height;
+
+    // Create canvas
+    const canvas = createCanvas(width, height);
+    const ctx = canvas.getContext('2d');
+
+    // Create ImageData manually since canvas package doesn't have ImageData constructor
+    const imageData = ctx.createImageData(width, height);
+    const data = imageData.data;
+
+    // Fill image data
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const paletteIndex = picture.pixels[y][x];
+        const pixelIndex = (y * width + x) * 4;
+
+        if (paletteIndex === null || paletteIndex === undefined) {
+          // Transparent pixel
+          data[pixelIndex] = 0;
+          data[pixelIndex + 1] = 0;
+          data[pixelIndex + 2] = 0;
+          data[pixelIndex + 3] = 0;
+        } else {
+          // Get color from palette
+          const color = palette[paletteIndex] || [255, 0, 255];
+          data[pixelIndex] = color[0];
+          data[pixelIndex + 1] = color[1];
+          data[pixelIndex + 2] = color[2];
+          data[pixelIndex + 3] = 255;
+        }
+      }
+    }
+
+    ctx.putImageData(imageData, 0, 0);
+
+    // Convert to data URL
     return canvas.toDataURL('image/png');
   } catch (error) {
-    console.warn('Failed to convert picture to PNG:', error);
+    console.warn('Canvas package not available. Install with: bun add canvas');
+    console.warn('Error:', error);
     return 'data:image/png;base64,';
   }
 }

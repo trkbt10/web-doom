@@ -3,13 +3,16 @@
  * Handles loading and caching of textures and flats from WAD files
  */
 
-import type { WadFile } from '@web-doom/wad';
+import type { WadFile, TextureDefinition } from '@web-doom/wad';
 import {
   findLump,
   decodePicture,
   pictureToCanvas,
   parsePaletteFromPLAYPAL,
   DEFAULT_DOOM_PALETTE,
+  parsePNames,
+  parseTextures,
+  buildCompositeTexture,
 } from '@web-doom/wad';
 
 /**
@@ -31,9 +34,14 @@ export class TextureManager {
   private textureCache: Map<string, TextureData> = new Map();
   private flatCache: Map<string, TextureData> = new Map();
 
+  // Composite texture data
+  private patchNames: string[] = [];
+  private compositeTextures: Map<string, TextureDefinition> = new Map();
+
   constructor(wad: WadFile) {
     this.wad = wad;
     this.palette = this.loadPalette();
+    this.loadCompositeTextures();
   }
 
   /**
@@ -49,6 +57,23 @@ export class TextureManager {
       }
     }
     return DEFAULT_DOOM_PALETTE;
+  }
+
+  /**
+   * Load composite texture definitions from TEXTURE1/TEXTURE2
+   */
+  private loadCompositeTextures(): void {
+    try {
+      // Parse PNAMES (patch names)
+      this.patchNames = parsePNames(this.wad);
+      console.log(`Loaded ${this.patchNames.length} patch names from PNAMES`);
+
+      // Parse composite textures from TEXTURE1/TEXTURE2
+      this.compositeTextures = parseTextures(this.wad);
+      console.log(`Loaded ${this.compositeTextures.size} composite textures from TEXTURE1/TEXTURE2`);
+    } catch (error) {
+      console.warn('Failed to load composite textures:', error);
+    }
   }
 
   /**
@@ -93,8 +118,16 @@ export class TextureManager {
    * Load texture from WAD
    */
   private loadTexture(name: string): TextureData | null {
+    // First, try to load as a composite texture
+    const compositeTexture = this.loadCompositeTexture(name);
+    if (compositeTexture) {
+      return compositeTexture;
+    }
+
+    // If not a composite texture, try to load as a patch/sprite
     const lump = findLump(this.wad, name);
     if (!lump) {
+      console.warn(`Texture ${name} not found in WAD`);
       return null;
     }
 
@@ -119,20 +152,55 @@ export class TextureManager {
         height: canvas.height,
       };
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.warn(`Failed to load texture ${name}:`, error);
+      return null;
+    }
+  }
 
-      // Check if this might be a composite texture (defined in TEXTURE1/TEXTURE2)
-      if (errorMessage.includes('Invalid picture width') ||
-          errorMessage.includes('Invalid picture height') ||
-          errorMessage.includes('Buffer too small')) {
-        console.warn(
-          `Failed to load texture ${name}: ${errorMessage}\n` +
-          `This texture might be a composite texture (TEXTURE1/TEXTURE2) ` +
-          `which is not yet supported. Skipping...`
-        );
-      } else {
-        console.warn(`Failed to load texture ${name}:`, error);
+  /**
+   * Load composite texture from TEXTURE1/TEXTURE2
+   */
+  private loadCompositeTexture(name: string): TextureData | null {
+    // Check if this is a composite texture
+    const definition = this.compositeTextures.get(name);
+    if (!definition) {
+      return null;
+    }
+
+    try {
+      // Build the composite texture
+      const imageData = buildCompositeTexture(
+        definition,
+        this.patchNames,
+        this.wad,
+        this.palette
+      );
+
+      if (!imageData) {
+        console.warn(`Failed to build composite texture ${name}`);
+        return null;
       }
+
+      // Convert ImageData to canvas
+      const canvas = document.createElement('canvas');
+      canvas.width = imageData.width;
+      canvas.height = imageData.height;
+
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        throw new Error('Failed to get 2D context');
+      }
+
+      ctx.putImageData(imageData, 0, 0);
+
+      return {
+        name,
+        canvas,
+        width: canvas.width,
+        height: canvas.height,
+      };
+    } catch (error) {
+      console.warn(`Failed to load composite texture ${name}:`, error);
       return null;
     }
   }

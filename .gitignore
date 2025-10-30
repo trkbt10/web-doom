@@ -44,3 +44,6 @@ bun-debug.log*
 *.WAD
 packages/pages/public/wads/*.wad
 packages/pages/public/wads/*.WAD
+
+# Texture transformer catalog (generated files)
+packages/texture-transformer/catalog/

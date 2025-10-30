@@ -125,6 +125,19 @@ export {
   createPicture,
 } from './picture';
 
+// Composite textures (TEXTURE1/TEXTURE2)
+export type {
+  TexturePatch,
+  TextureDefinition,
+} from './texture';
+
+export {
+  parsePNames,
+  parseTextureLump,
+  parseTextures,
+  buildCompositeTexture,
+} from './texture';
+
 // Image conversion
 export type {
   PictureToCanvasOptions,
@@ -133,6 +146,7 @@ export type {
 
 export {
   DEFAULT_DOOM_PALETTE,
+  pictureToImageData,
   pictureToCanvas,
   canvasToPicture,
   loadImageToCanvas,

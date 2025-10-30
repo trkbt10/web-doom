@@ -95,6 +95,10 @@ export async function transformTexture(
     const candidate = response.candidates[0];
     let transformedImageData = '';
 
+    if (!candidate.content || !candidate.content.parts) {
+      throw new Error('Invalid response format from Gemini API');
+    }
+
     for (const part of candidate.content.parts) {
       if (part.inlineData) {
         const imageData = part.inlineData.data;
