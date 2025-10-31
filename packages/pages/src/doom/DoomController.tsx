@@ -1,9 +1,10 @@
 import { CSSProperties } from 'react';
-import { GameController } from '@web-doom/game-controller';
+import { ThemedController } from '@web-doom/game-controller';
 import {
   doomControllerSchema,
   ControllerInputEvent,
-  ControllerSchema
+  ControllerSchema,
+  type ControllerTheme,
 } from '@web-doom/game-controller';
 
 export interface DoomControllerProps {
@@ -36,11 +37,21 @@ export interface DoomControllerProps {
    * Whether to show visual feedback on button press
    */
   showFeedback?: boolean;
+
+  /**
+   * Controller theme (defaults to 'doom')
+   */
+  theme?: string | ControllerTheme;
+
+  /**
+   * Base URL for assets (defaults to import.meta.env.BASE_URL)
+   */
+  baseUrl?: string;
 }
 
 /**
  * DOOM-specific controller component
- * Wraps the generic GameController with DOOM-specific button mappings
+ * Wraps ThemedController with DOOM-specific button mappings and default theme
  */
 export function DoomController({
   onInput,
@@ -49,10 +60,19 @@ export function DoomController({
   className,
   style,
   showFeedback = true,
+  theme = 'doom',
+  baseUrl,
 }: DoomControllerProps): JSX.Element {
   const handleInput = (event: ControllerInputEvent) => {
     if (!enabled) return;
+
+    // Send the original button event
     onInput(event.buttonId, event.pressed);
+
+    // A button (fire) also acts as confirm for menu selection
+    if (event.buttonId === 'fire') {
+      onInput('confirm', event.pressed);
+    }
   };
 
   const containerStyle: CSSProperties = {
@@ -61,13 +81,23 @@ export function DoomController({
     ...style,
   };
 
+  // Construct assetsBaseUrl using BASE_URL
+  const effectiveBaseUrl = baseUrl ?? import.meta.env.BASE_URL ?? '/';
+  // Ensure trailing slash and append 'controllers'
+  const normalizedBaseUrl = effectiveBaseUrl.endsWith('/') ? effectiveBaseUrl : `${effectiveBaseUrl}/`;
+  const assetsBaseUrl = `${normalizedBaseUrl}controllers`;
+
   return (
-    <GameController
+    <ThemedController
+      key={`${schema.name}-${schema.orientation || 'default'}`}
       schema={schema}
+      theme={theme}
       onInput={handleInput}
       className={className}
       style={containerStyle}
       showFeedback={showFeedback}
+      useCache={true}
+      assetsBaseUrl={assetsBaseUrl}
     />
   );
 }

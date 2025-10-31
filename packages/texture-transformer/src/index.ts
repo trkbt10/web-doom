@@ -159,6 +159,14 @@ export {
 } from './transformers/nanobanana-client';
 
 export {
+  UnifiedTransformerClient,
+  createImageTransformer,
+  transformTexture,
+  type UnifiedTransformerConfig,
+  type TransformerBackend,
+} from './transformers/unified-client';
+
+export {
   TransformerPipeline,
   createTransformerPipeline,
   type TransformerPipelineConfig,

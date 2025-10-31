@@ -83,6 +83,7 @@ export {
   toJSON,
   getStatistics,
   createMemoryMap,
+  isValidTextureLump,
 } from './utils';
 
 // Test helpers

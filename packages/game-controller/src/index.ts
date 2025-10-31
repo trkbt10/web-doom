@@ -58,6 +58,7 @@ export type {
   ImageTransformerConfig,
   ControllerAsset,
   ControllerAssetsManifest,
+  ControllerTheme,
 } from './transformers';
 
 export {
@@ -79,7 +80,19 @@ export {
   getAssetsByOrientation,
   getAssetById,
   getAssetUrl,
+  CONTROLLER_THEMES,
+  THEME_CATEGORIES,
+  getTheme,
+  getAllThemes,
+  getThemesByCategory,
+  getDefaultTheme,
 } from './transformers';
+
+// Theme-aware components and hooks
+export { ThemedController, ThemeSelector } from './components/ThemedController';
+export type { ThemedControllerProps, ThemeSelectorProps } from './components/ThemedController';
+export { useThemedController, usePreloadThemes } from './hooks/useThemedController';
+export type { ThemedControllerOptions, ThemedControllerResult } from './hooks/useThemedController';
 
 // Debug utilities
 export function enableControllerDebug(enabled: boolean = true): void {

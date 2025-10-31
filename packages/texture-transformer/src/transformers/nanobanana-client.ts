@@ -25,6 +25,8 @@ export interface NanobananaConfig {
   defaultModel?: string;
   /** Request timeout (ms) */
   timeout?: number;
+  /** Skip SSL certificate verification (dev only, not recommended for production) */
+  skipSSLVerification?: boolean;
 }
 
 /**
@@ -81,11 +83,18 @@ export class NanobananaClient implements ImageTransformer {
       apiKey: config.apiKey || process.env.NANOBANANA_API_KEY || '',
       defaultModel: config.defaultModel || 'nanobanana-i2i-v1',
       timeout: config.timeout || 60000,
+      skipSSLVerification: config.skipSSLVerification ?? process.env.NODE_ENV === 'development',
     };
 
     if (!this.config.apiKey) {
       console.warn(
         'Nanobanana API key not provided. Set NANOBANANA_API_KEY environment variable or pass apiKey in config.'
+      );
+    }
+
+    if (this.config.skipSSLVerification) {
+      console.warn(
+        '⚠️  SSL certificate verification is disabled. This should only be used in development.'
       );
     }
   }
@@ -105,7 +114,8 @@ export class NanobananaClient implements ImageTransformer {
    * Call Nanobanana API
    */
   private async callApi(request: NanobananaRequest): Promise<NanobananaResponse> {
-    const response = await fetch(this.config.endpoint, {
+    // Build fetch options
+    const fetchOptions: RequestInit & { tls?: { rejectUnauthorized?: boolean } } = {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -113,7 +123,14 @@ export class NanobananaClient implements ImageTransformer {
       },
       body: JSON.stringify(request),
       signal: AbortSignal.timeout(this.config.timeout),
-    });
+    };
+
+    // Add TLS options if SSL verification should be skipped (Bun-specific)
+    if (this.config.skipSSLVerification && typeof Bun !== 'undefined') {
+      fetchOptions.tls = { rejectUnauthorized: false };
+    }
+
+    const response = await fetch(this.config.endpoint, fetchOptions);
 
     if (!response.ok) {
       const errorText = await response.text();

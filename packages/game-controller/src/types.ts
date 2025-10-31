@@ -97,6 +97,17 @@ export interface ControllerSchema {
   name: string;
   width: number;
   height: number;
+  orientation?: 'landscape' | 'portrait';
+  displayArea?: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    borderRadius?: number;
+    borderColor?: string;
+    borderWidth?: number;
+    backgroundColor?: string;
+  };
   buttons: (ButtonSchema | DPadSchema | StickSchema)[];
   background?: {
     color: string;

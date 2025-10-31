@@ -1,15 +1,43 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useDoom, DoomCanvas, DoomController } from '../doom';
 import {
   doomControllerSchema,
   doomControllerSchemaPortrait,
+  ThemeSelector,
 } from '@web-doom/game-controller';
+import { useElementSize } from '../hooks/useElementSize';
+import { useAvailableThemes } from '../hooks/useAvailableThemes';
 
 export function DoomPlayerPage() {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const containerSize = useElementSize(containerRef);
+
   const [canvas, setCanvas] = useState<HTMLCanvasElement | null>(null);
   const [selectedWadName, setSelectedWadName] = useState<string>('');
   const [isLandscape, setIsLandscape] = useState(window.innerWidth > window.innerHeight);
   const baseUrl = import.meta.env.BASE_URL;
+
+  // Load available themes from manifest.json
+  const manifestUrl = `${baseUrl}controllers/manifest.json`;
+  const { themes: availableThemes, loading: themesLoading } = useAvailableThemes(manifestUrl);
+
+  // Controller theme state with localStorage persistence
+  const [controllerTheme, setControllerTheme] = useState<string>(() => {
+    try {
+      return localStorage.getItem('doom-controller-theme') || 'doom';
+    } catch {
+      return 'doom';
+    }
+  });
+
+  // Save theme to localStorage when it changes
+  useEffect(() => {
+    try {
+      localStorage.setItem('doom-controller-theme', controllerTheme);
+    } catch {
+      // Ignore localStorage errors
+    }
+  }, [controllerTheme]);
 
   const {
     status,
@@ -25,20 +53,18 @@ export function DoomPlayerPage() {
     autoInit: true,
   });
 
-  // Detect orientation changes
+  // Detect orientation based on container size
   useEffect(() => {
-    const handleResize = () => {
-      setIsLandscape(window.innerWidth > window.innerHeight);
-    };
+    if (containerSize.width === 0 || containerSize.height === 0) return;
 
-    window.addEventListener('resize', handleResize);
-    window.addEventListener('orientationchange', handleResize);
-
-    return () => {
-      window.removeEventListener('resize', handleResize);
-      window.removeEventListener('orientationchange', handleResize);
-    };
-  }, []);
+    const newIsLandscape = containerSize.width > containerSize.height;
+    console.log('[DoomPlayerPage] Orientation change:', {
+      width: containerSize.width,
+      height: containerSize.height,
+      isLandscape: newIsLandscape
+    });
+    setIsLandscape(newIsLandscape);
+  }, [containerSize.width, containerSize.height]);
 
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -66,104 +92,119 @@ export function DoomPlayerPage() {
   const canvasWidth = 640;
   const canvasHeight = 480;
 
-  // Calculate display dimensions
-  const getDisplayDimensions = () => {
-    const maxWidth = window.innerWidth;
-    const maxHeight = window.innerHeight;
-    const aspectRatio = 4 / 3;
-
-    if (isLandscape) {
-      const targetWidth = maxWidth * 0.55;
-      const targetHeight = targetWidth / aspectRatio;
-      return {
-        width: isGameStarted ? Math.floor(targetWidth) : Math.min(480, maxWidth * 0.8),
-        height: isGameStarted ? Math.floor(targetHeight) : Math.floor(Math.min(480, maxWidth * 0.8) / aspectRatio),
-      };
-    } else {
-      const availableHeight = maxHeight * 0.5;
-      let width = maxWidth;
-      let height = width / aspectRatio;
-
-      if (height > availableHeight) {
-        height = availableHeight;
-        width = height * aspectRatio;
-      }
-
-      return {
-        width: isGameStarted ? Math.floor(width) : Math.min(480, maxWidth * 0.8),
-        height: isGameStarted ? Math.floor(height) : Math.floor(Math.min(480, maxWidth * 0.8) / aspectRatio),
-      };
-    }
-  };
-
-  const displayDimensions = getDisplayDimensions();
-
   // Select controller schema based on orientation
   const controllerSchema = isLandscape ? doomControllerSchema : doomControllerSchemaPortrait;
 
-  // Calculate controller size for portrait mode
-  const getControllerStyle = () => {
-    if (isLandscape) {
-      return {
-        width: '100%',
-        height: '100%',
-      };
+  // Debug: allow disabling controller/UI overlays via query (?ui=0)
+  const showUI = useMemo(() => {
+    try {
+      const u = new URL(window.location.href);
+      const ui = u.searchParams.get('ui');
+      return ui !== '0';
+    } catch {
+      return true;
+    }
+  }, []);
+
+  console.log('[DoomPlayerPage] Controller schema selected:', {
+    isLandscape,
+    schemaName: controllerSchema.name,
+    schemaOrientation: controllerSchema.orientation,
+    schemaDimensions: `${controllerSchema.width}x${controllerSchema.height}`
+  });
+
+  // Calculate controller scale to fit container (maintain aspect ratio, no crop)
+  // Maximum scale is 1.0 to prevent upscaling beyond original size
+  const controllerScale = useMemo(() => {
+    if (containerSize.width === 0 || containerSize.height === 0) return 1;
+
+    const scaleX = containerSize.width / controllerSchema.width;
+    const scaleY = containerSize.height / controllerSchema.height;
+    return Math.min(scaleX, scaleY, 1.0);
+  }, [containerSize.width, containerSize.height, controllerSchema.width, controllerSchema.height]);
+
+  // Calculate scaled controller dimensions
+  const scaledControllerWidth = controllerSchema.width * controllerScale;
+  const scaledControllerHeight = controllerSchema.height * controllerScale;
+
+  // Calculate canvas position (from displayArea in schema)
+  const displayArea = controllerSchema.displayArea;
+  const canvasPosition = useMemo(() => {
+    if (!displayArea || containerSize.width === 0 || containerSize.height === 0) {
+      return { top: 0, left: 0, width: 640, height: 480 };
     }
 
-    // Portrait mode: fit controller in available space below canvas
-    const availableHeight = window.innerHeight - displayDimensions.height;
-    const availableWidth = window.innerWidth;
-    const controllerAspectRatio = controllerSchema.width / controllerSchema.height;
-
-    // Calculate size based on available space
-    const widthBasedHeight = availableWidth / controllerAspectRatio;
-    const heightBasedWidth = availableHeight * controllerAspectRatio;
-
-    let maxWidth: string;
-    let maxHeight: string;
-
-    if (widthBasedHeight <= availableHeight * 0.9) {
-      // Width-limited: use full width with some padding
-      maxWidth = `${availableWidth * 0.95}px`;
-      maxHeight = `${widthBasedHeight}px`;
-    } else {
-      // Height-limited: fit within available height
-      maxHeight = `${availableHeight * 0.9}px`;
-      maxWidth = `${heightBasedWidth}px`;
-    }
+    // Center the controller in container
+    const controllerLeft = (containerSize.width - scaledControllerWidth) / 2;
+    const controllerTop = (containerSize.height - scaledControllerHeight) / 2;
 
     return {
-      maxWidth,
-      maxHeight,
-      width: 'auto',
-      height: 'auto',
+      top: Math.floor(controllerTop + displayArea.y * controllerScale),
+      left: Math.floor(controllerLeft + displayArea.x * controllerScale),
+      width: Math.floor(displayArea.width * controllerScale),
+      height: Math.floor(displayArea.height * controllerScale),
     };
+  }, [displayArea, controllerScale, scaledControllerWidth, scaledControllerHeight, containerSize.width, containerSize.height]);
+
+  // DOOM canvas resolution
+  const displayDimensions = {
+    width: canvasPosition.width,
+    height: canvasPosition.height,
   };
 
-  const controllerStyle = getControllerStyle();
+  // Controller style
+  const controllerStyle = useMemo(() => {
+    return {
+      width: `${scaledControllerWidth}px`,
+      height: `${scaledControllerHeight}px`,
+    };
+  }, [scaledControllerWidth, scaledControllerHeight]);
 
   return (
-    <div style={{
-      width: '100vw',
-      height: '100vh',
-      margin: 0,
-      padding: 0,
-      overflow: 'hidden',
-      backgroundColor: '#000',
-      position: 'relative',
-      fontFamily: 'system-ui, -apple-system, sans-serif',
-    }}>
-      {/* Canvas Layer - Always rendered */}
+    <div
+      ref={containerRef}
+      style={{
+        width: '100vw',
+        height: '100vh',
+        margin: 0,
+        padding: 0,
+        overflow: 'hidden',
+        backgroundColor: '#000',
+        position: 'relative',
+        fontFamily: 'system-ui, -apple-system, sans-serif',
+      }}
+    >
+      {/* Controller Layer - Centered, scaled to fit */}
+      {isGameStarted && showUI && containerSize.width > 0 && containerSize.height > 0 && (
+        <div style={{
+          position: 'absolute',
+          top: `${(containerSize.height - scaledControllerHeight) / 2}px`,
+          left: `${(containerSize.width - scaledControllerWidth) / 2}px`,
+          width: `${scaledControllerWidth}px`,
+          height: `${scaledControllerHeight}px`,
+          zIndex: 1,
+        }}>
+          <DoomController
+            onInput={handleControllerInput}
+            schema={controllerSchema}
+            enabled={isGameStarted}
+            showFeedback={true}
+            style={controllerStyle}
+            theme={controllerTheme}
+            baseUrl={baseUrl}
+          />
+        </div>
+      )}
+
+      {/* Canvas Layer - Positioned in displayArea */}
       <div style={{
         position: 'absolute',
-        top: isGameStarted && isLandscape ? '20px' : 0,
-        left: isGameStarted && isLandscape ? '20px' : '50%',
-        transform: isGameStarted && isLandscape ? 'none' : 'translateX(-50%)',
-        zIndex: isGameStarted ? 100 : 1,
+        top: `${canvasPosition.top}px`,
+        left: `${canvasPosition.left}px`,
+        width: `${canvasPosition.width}px`,
+        height: `${canvasPosition.height}px`,
+        zIndex: isGameStarted ? 10 : 1,
         opacity: !isGameStarted ? 0.3 : 1,
-        boxShadow: isGameStarted && isLandscape ? '0 8px 32px rgba(0, 0, 0, 0.8)' : 'none',
-        border: isGameStarted && isLandscape ? '2px solid #8B0000' : 'none',
-        borderRadius: isGameStarted && isLandscape ? '4px' : 0,
         overflow: 'hidden',
         pointerEvents: !isGameStarted ? 'none' : 'auto',
       }}>
@@ -176,31 +217,8 @@ export function DoomPlayerPage() {
         />
       </div>
 
-      {/* Controller Layer - Always rendered, only visible when game started */}
-      {isGameStarted && (
-        <div style={{
-          position: 'absolute',
-          top: isLandscape ? 0 : `${displayDimensions.height}px`,
-          left: 0,
-          width: '100%',
-          height: isLandscape ? '100%' : `calc(100vh - ${displayDimensions.height}px)`,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: isLandscape ? 1 : 50,
-        }}>
-          <DoomController
-            onInput={handleControllerInput}
-            schema={controllerSchema}
-            enabled={isGameStarted}
-            showFeedback={true}
-            style={controllerStyle}
-          />
-        </div>
-      )}
-
       {/* WAD Selection Overlay - Only shown when game not started */}
-      {!isGameStarted && (
+      {!isGameStarted && showUI && (
         <div style={{
           position: 'absolute',
           top: 0,
@@ -388,6 +406,73 @@ export function DoomPlayerPage() {
                   <p style={{ margin: '4px 0' }}>• doom.wad, doom2.wad</p>
                   <p style={{ margin: '4px 0' }}>• plutonia.wad, tnt.wad</p>
                   <p style={{ margin: '4px 0' }}>• Custom PWADs</p>
+                </div>
+
+                {/* Controller Theme Selector */}
+                <div style={{
+                  marginTop: '20px',
+                  padding: '16px',
+                  backgroundColor: 'rgba(139, 0, 0, 0.05)',
+                  border: '1px solid rgba(139, 0, 0, 0.2)',
+                  borderRadius: '8px',
+                }}>
+                  <p style={{
+                    margin: '0 0 12px 0',
+                    fontWeight: 'bold',
+                    fontSize: '14px',
+                    color: '#8B0000'
+                  }}>
+                    🎨 Controller Theme
+                  </p>
+                  {themesLoading ? (
+                    <div style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      backgroundColor: '#1a1a1a',
+                      color: '#666',
+                      border: '1px solid #444',
+                      borderRadius: '4px',
+                      fontSize: '14px',
+                    }}>
+                      Loading themes...
+                    </div>
+                  ) : availableThemes.length > 0 ? (
+                    <ThemeSelector
+                      value={controllerTheme}
+                      onChange={setControllerTheme}
+                      themes={availableThemes}
+                      mode="dropdown"
+                      style={{
+                        width: '100%',
+                        padding: '8px 12px',
+                        backgroundColor: '#1a1a1a',
+                        color: '#fff',
+                        border: '1px solid #444',
+                        borderRadius: '4px',
+                        fontSize: '14px',
+                        cursor: 'pointer',
+                      }}
+                    />
+                  ) : (
+                    <div style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      backgroundColor: '#1a1a1a',
+                      color: '#666',
+                      border: '1px solid #444',
+                      borderRadius: '4px',
+                      fontSize: '14px',
+                    }}>
+                      No themes available
+                    </div>
+                  )}
+                  <p style={{
+                    margin: '8px 0 0 0',
+                    fontSize: '11px',
+                    color: '#666'
+                  }}>
+                    Select a visual style for the game controller
+                  </p>
                 </div>
               </>
             )}

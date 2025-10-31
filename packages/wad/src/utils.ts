@@ -280,3 +280,29 @@ export function createMemoryMap(wad: WadFile): string {
 
   return lines.join('\n');
 }
+
+/**
+ * Check if a lump name represents a valid texture/picture that can be replaced
+ * This prevents replacing non-picture lumps like DEMO files, map data, etc.
+ */
+export function isValidTextureLump(lumpName: string): boolean {
+  const name = lumpName.toUpperCase();
+
+  // Exclude known non-picture lumps
+  const excludedPatterns = [
+    'DEMO', // Demo files (DEMO1, DEMO2, DEMO3)
+    'THINGS', 'LINEDEFS', 'SIDEDEFS', 'VERTEXES', 'SEGS', 'SSECTORS', 'NODES', 'SECTORS', 'REJECT', 'BLOCKMAP', // Map data
+    'PLAYPAL', 'COLORMAP', 'ENDOOM', 'GENMIDI', 'DMXGUS', // System lumps
+    'TEXTURE1', 'TEXTURE2', 'PNAMES', // Texture definitions
+    'D_', 'DP_', // Music (D_E1M1, etc.)
+    'DS_', // Sound effects
+  ];
+
+  for (const pattern of excludedPatterns) {
+    if (name.startsWith(pattern)) {
+      return false;
+    }
+  }
+
+  return true;
+}

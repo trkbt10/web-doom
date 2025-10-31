@@ -59,9 +59,9 @@ if [ -f "src/default.cfg" ]; then
     # Use WebGL renderer (software renderer is not fully supported)
     sed -i '' 's/force_software_renderer[[:space:]]*1/force_software_renderer       0/' "src/default.cfg"
 
-    # Disable mouse, enable joystick
-    sed -i '' 's/use_mouse[[:space:]]*1/use_mouse                     0/' "src/default.cfg"
-    sed -i '' 's/use_joystick[[:space:]]*0/use_joystick                  1/' "src/default.cfg"
+    # Disable joystick to avoid double input (SDL joystick + web UI)
+    sed -i '' 's/use_mouse[[:space:]]*[01]/use_mouse                     0/' "src/default.cfg"
+    sed -i '' 's/use_joystick[[:space:]]*[01]/use_joystick                  0/' "src/default.cfg"
 
     # Map keys to arrow keys (SDL scancodes)
     # key_up: 82 (ArrowUp), key_down: 81 (ArrowDown)
@@ -78,9 +78,61 @@ novert                        1\
 always_run                    1' "src/default.cfg"
     fi
 
+    # Enforce integer scaling to prevent smoothing artifacts
+    if grep -q "^integer_scaling" "src/default.cfg"; then
+        sed -i '' 's/integer_scaling[[:space:]]*[0-9]*/integer_scaling               1/' "src/default.cfg"
+    else
+        printf 'integer_scaling               1\n' >> "src/default.cfg"
+    fi
+
+    # Align key bindings with our UI mappings (SDL scancodes)
+    # Arrows
+    sed -i '' 's/^key_up[[:space:]]*[0-9]*/key_up                        82/' "src/default.cfg" || true
+    sed -i '' 's/^key_down[[:space:]]*[0-9]*/key_down                      81/' "src/default.cfg" || true
+    sed -i '' 's/^key_left[[:space:]]*[0-9]*/key_left                      80/' "src/default.cfg" || true
+    sed -i '' 's/^key_right[[:space:]]*[0-9]*/key_right                     79/' "src/default.cfg" || true
+    # Actions
+    if grep -q "^key_fire" "src/default.cfg"; then
+      sed -i '' 's/^key_fire[[:space:]]*[0-9]*/key_fire                      224/' "src/default.cfg"
+    else
+      printf 'key_fire                      224\n' >> "src/default.cfg"
+    fi
+    if grep -q "^key_use" "src/default.cfg"; then
+      sed -i '' 's/^key_use[[:space:]]*[0-9]*/key_use                       44/' "src/default.cfg"
+    else
+      printf 'key_use                       44\n' >> "src/default.cfg"
+    fi
+    # Strafes (direct keys)
+    if grep -q "^key_strafeleft" "src/default.cfg"; then
+      sed -i '' 's/^key_strafeleft[[:space:]]*[0-9]*/key_strafeleft                54/' "src/default.cfg"
+    else
+      printf 'key_strafeleft                54\n' >> "src/default.cfg"
+    fi
+    if grep -q "^key_straferight" "src/default.cfg"; then
+      sed -i '' 's/^key_straferight[[:space:]]*[0-9]*/key_straferight               55/' "src/default.cfg"
+    else
+      printf 'key_straferight               55\n' >> "src/default.cfg"
+    fi
+
     echo "✓ Controller optimizations applied to default.cfg"
 else
     echo "Warning: default.cfg not found"
+fi
+echo ""
+
+# Patch i_video.c to avoid linear filtering on final blit (prevents ghosting)
+echo "Patching i_video.c to use NEAREST filtering for final upscale..."
+if [ -f "src/i_video.c" ]; then
+  # Replace the second SDL_HINT_RENDER_SCALE_QUALITY to 'nearest'
+  # (the first occurrence is already 'nearest' for the intermediate texture)
+  if grep -q 'SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "linear")' "src/i_video.c"; then
+    sed -i '' 's/SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "linear")/SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "nearest")/' "src/i_video.c"
+    echo "✓ Updated scale quality hint to nearest"
+  else
+    echo "ℹ️  No linear scale hint found to replace (already nearest?)"
+  fi
+else
+  echo "Warning: src/i_video.c not found; skipping renderer patch"
 fi
 echo ""
 

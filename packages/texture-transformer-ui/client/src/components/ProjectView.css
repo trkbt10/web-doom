@@ -1,0 +1,97 @@
+.project-view {
+  width: 100%;
+}
+
+.project-view-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
+
+.project-info h2 {
+  color: #ff4444;
+  margin-bottom: 0.5rem;
+}
+
+.project-info p {
+  color: #999;
+}
+
+.project-stats {
+  display: flex;
+  gap: 2rem;
+  padding: 1.5rem;
+  background: #2a2a2a;
+  border: 1px solid #444;
+  border-radius: 8px;
+  margin-bottom: 2rem;
+}
+
+.project-quick-actions {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.stat-label {
+  color: #999;
+  font-size: 0.9rem;
+}
+
+.stat-value {
+  color: #ff4444;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.empty-textures {
+  text-align: center;
+  padding: 4rem 2rem;
+  background: #2a2a2a;
+  border: 1px solid #444;
+  border-radius: 8px;
+}
+
+.empty-textures p {
+  color: #999;
+  font-size: 1.2rem;
+  margin-bottom: 1.5rem;
+}
+
+.texture-filters {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  padding: 0.5rem;
+  background: #2a2a2a;
+  border: 1px solid #444;
+  border-radius: 8px;
+}
+
+.filter-btn {
+  padding: 0.5rem 1rem;
+  background: transparent;
+  border: none;
+  color: #999;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  border-radius: 4px;
+}
+
+.filter-btn:hover {
+  color: #fff;
+  background: #333;
+}
+
+.filter-btn.active {
+  color: #fff;
+  background: #ff4444;
+}

@@ -1,0 +1,153 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="710" viewBox="0 0 400 710">
+      <defs>
+        <style>
+          .button { fill: var(--button-color); stroke: rgba(255,255,255,0.3); stroke-width: 2; }
+          .button-label { fill: white; font-family: Arial, sans-serif; font-size: 20px; font-weight: bold; text-anchor: middle; dominant-baseline: middle; user-select: none; }
+          .button-label-small { fill: white; font-family: Arial, sans-serif; font-size: 14px; font-weight: bold; text-anchor: middle; dominant-baseline: middle; user-select: none; }
+          .dpad-part { fill: #4a4a4a; stroke: rgba(255,255,255,0.3); stroke-width: 2; }
+          .shoulder { fill: #5a5a5a; stroke: rgba(255,255,255,0.3); stroke-width: 2; rx: 8; }
+        </style>
+      </defs>
+
+      <!-- Background -->
+      <rect width="400" height="710" fill="transparent" opacity="0.8" rx="20"/>
+
+      <!-- Guide lines for AI -->
+      
+    <!-- Controller body outline guide (subtle for AI recognition) -->
+    <rect
+      x="0"
+      y="0"
+      width="400"
+      height="710"
+      fill="none"
+      stroke="rgba(128,128,128,0.15)"
+      stroke-width="2"
+      rx="20"
+    />
+
+    <!-- Display area guide border -->
+    
+    <rect
+      x="15"
+      y="25"
+      width="370"
+      height="280"
+      fill="none"
+      stroke="rgba(100,100,100,0.12)"
+      stroke-width="1"
+      rx="9"
+    />
+    
+
+    <!-- Control areas guide -->
+    <text
+      x="10"
+      y="20"
+      fill="rgba(150,150,150,0.2)"
+      font-family="Arial, sans-serif"
+      font-size="12"
+      font-weight="bold"
+    >GAME CONTROLLER</text>
+  
+
+      
+      <!-- Display Area -->
+      <rect
+        x="20"
+        y="30"
+        width="360"
+        height="270"
+        fill="#000000"
+        stroke="#444444"
+        stroke-width="3"
+        rx="4"
+      />
+      <text
+        x="200"
+        y="165"
+        fill="#333333"
+        font-family="Arial, sans-serif"
+        font-size="24"
+        font-weight="bold"
+        text-anchor="middle"
+        dominant-baseline="middle"
+        opacity="0.3"
+      >DISPLAY</text>
+    
+
+      <!-- Buttons -->
+      
+      <g id="strafe-left">
+        <rect class="shoulder" x="30" y="300" width="70" height="39.375" style="--button-color: #2a2a2a"/>
+        <text class="button-label" x="65" y="319.6875">L</text>
+      </g>
+    
+
+      <g id="strafe-right">
+        <rect class="shoulder" x="300" y="300" width="70" height="39.375" style="--button-color: #2a2a2a"/>
+        <text class="button-label" x="335" y="319.6875">R</text>
+      </g>
+    
+
+    <g id="dpad">
+      <!-- Vertical bar -->
+      <rect class="dpad-part"
+        x="66.66666666666667"
+        y="420"
+        width="46.666666666666664"
+        height="140"
+        rx="4"/>
+
+      <!-- Horizontal bar -->
+      <rect class="dpad-part"
+        x="20"
+        y="466.6666666666667"
+        width="140"
+        height="46.666666666666664"
+        rx="4"/>
+
+      <!-- Direction labels -->
+      <text class="button-label" x="90" y="455" font-size="16">▲</text>
+      <text class="button-label" x="90" y="525" font-size="16">▼</text>
+      <text class="button-label" x="55" y="490" font-size="16">◀</text>
+      <text class="button-label" x="125" y="490" font-size="16">▶</text>
+    </g>
+  
+
+      <g id="weapon-prev">
+        <circle class="button" cx="310" cy="440" r="22.5" style="--button-color: #2a2a2a"/>
+        <text class="button-label" x="310" y="440">X</text>
+      </g>
+    
+
+      <g id="fire">
+        <circle class="button" cx="360" cy="490" r="22.5" style="--button-color: #8B0000"/>
+        <text class="button-label" x="360" y="490">A</text>
+      </g>
+    
+
+      <g id="use">
+        <circle class="button" cx="310" cy="540" r="22.5" style="--button-color: #2a2a2a"/>
+        <text class="button-label" x="310" y="540">B</text>
+      </g>
+    
+
+      <g id="weapon-next">
+        <circle class="button" cx="260" cy="490" r="22.5" style="--button-color: #2a2a2a"/>
+        <text class="button-label" x="260" y="490">Y</text>
+      </g>
+    
+
+      <g id="map">
+        <rect class="button" x="130" y="624" width="60" height="36" style="--button-color: #2a2a2a"/>
+        <text class="button-label" x="160" y="642">MAP</text>
+      </g>
+    
+
+      <g id="menu">
+        <rect class="button" x="210" y="624" width="60" height="36" style="--button-color: #2a2a2a"/>
+        <text class="button-label-small" x="240" y="642">START</text>
+      </g>
+    
+    </svg>

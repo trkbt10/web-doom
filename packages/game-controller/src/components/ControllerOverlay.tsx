@@ -27,6 +27,11 @@ export interface ControllerOverlayProps {
    * Height of the overlay (should match controller image height)
    */
   height: number;
+
+  /**
+   * Whether to show hit regions for debugging
+   */
+  showHitRegions?: boolean;
 }
 
 /**
@@ -37,7 +42,30 @@ export function ControllerOverlay({
   pressedButtons,
   width,
   height,
+  showHitRegions = false,
 }: ControllerOverlayProps): JSX.Element {
+  // Generate hit region outlines for debugging
+  const hitRegions = useMemo(() => {
+    if (!showHitRegions) return [];
+
+    const result: JSX.Element[] = [];
+
+    for (const button of schema.buttons) {
+      if (button.type === 'dpad') {
+        const dpad = button as DPadSchema;
+        // Show hit regions for each direction
+        for (const [dirName, dir] of Object.entries(dpad.directions)) {
+          result.push(renderHitRegion(`${button.id}-${dirName}`, dir.hitRegion));
+        }
+      } else {
+        const btn = button as ButtonSchema;
+        result.push(renderHitRegion(btn.id, btn.hitRegion));
+      }
+    }
+
+    return result;
+  }, [schema, showHitRegions]);
+
   // Generate highlight paths for pressed buttons
   const highlights = useMemo(() => {
     const result: JSX.Element[] = [];
@@ -83,6 +111,7 @@ export function ControllerOverlay({
         userSelect: 'none',
       }}
     >
+      {hitRegions}
       {highlights}
     </svg>
   );
@@ -199,6 +228,48 @@ function renderHighlightFromVisual(
   }
 
   return <g key={buttonId} />;
+}
+
+/**
+ * Render hit region outline for debugging
+ */
+function renderHitRegion(buttonId: string, hitRegion: HitRegion): JSX.Element {
+  if (hitRegion.type === 'circle') {
+    const { cx, cy, r } = hitRegion.circle;
+    return (
+      <circle
+        key={`hit-${buttonId}`}
+        cx={cx}
+        cy={cy}
+        r={r}
+        fill="none"
+        stroke="#00ff00"
+        strokeWidth={2}
+        opacity={0.4}
+        strokeDasharray="5,5"
+      />
+    );
+  }
+
+  if (hitRegion.type === 'rect') {
+    const { x, y, width, height } = hitRegion.rect;
+    return (
+      <rect
+        key={`hit-${buttonId}`}
+        x={x}
+        y={y}
+        width={width}
+        height={height}
+        fill="none"
+        stroke="#00ff00"
+        strokeWidth={2}
+        opacity={0.4}
+        strokeDasharray="5,5"
+      />
+    );
+  }
+
+  return <g key={`hit-${buttonId}`} />;
 }
 
 /**

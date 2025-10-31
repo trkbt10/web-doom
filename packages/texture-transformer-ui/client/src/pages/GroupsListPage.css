@@ -1,0 +1,68 @@
+.groups-list-page {
+  padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.groups-list-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
+
+.groups-list-title h2 {
+  margin: 0 0 0.5rem 0;
+  color: #ff4444;
+  font-size: 2rem;
+}
+
+.groups-list-title p {
+  margin: 0;
+  color: #999;
+  font-size: 1rem;
+}
+
+.groups-list-toolbar {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding: 1rem;
+  background: #2a2a2a;
+  border: 1px solid #444;
+  border-radius: 8px;
+}
+
+.toolbar-message {
+  color: #999;
+  font-size: 0.9rem;
+  margin-left: 1rem;
+}
+
+.groups-list-stats {
+  display: flex;
+  gap: 2rem;
+  padding: 1.5rem;
+  background: #2a2a2a;
+  border: 1px solid #444;
+  border-radius: 8px;
+  margin-bottom: 2rem;
+}
+
+.groups-list-stats .stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.groups-list-stats .stat-label {
+  color: #999;
+  font-size: 0.9rem;
+}
+
+.groups-list-stats .stat-value {
+  color: #ff4444;
+  font-size: 1.5rem;
+  font-weight: 600;
+}

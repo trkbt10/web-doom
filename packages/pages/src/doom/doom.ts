@@ -54,6 +54,8 @@ export class DoomEngine {
     this.config = config;
   }
 
+  // Removed WebGL state monkey-patching to avoid interfering with SDL/Emscripten renderer
+
   /**
    * Create AudioContext (but don't resume yet - wait for user gesture)
    */
@@ -182,6 +184,7 @@ export class DoomEngine {
 
       // Setup Module before loading the script
       const self = this;
+      const { canvas } = this.config;
       window.Module = {
         onRuntimeInitialized: () => {
           this.isModuleReady = true;
@@ -227,7 +230,7 @@ export class DoomEngine {
 
           console.error('[DOOM]', text);
         },
-        canvas: this.config.canvas,
+        canvas,
         print: (text: string) => {
           // Parse doom protocol messages
           if (text.startsWith('doom:')) {
@@ -466,21 +469,59 @@ export class DoomEngine {
    * Ensure default.cfg exists in the virtual filesystem
    */
   private ensureDefaultConfig(): void {
+    const applyPatches = (text: string): string => {
+      const setOrAdd = (cfg: string, key: string, value: string): string => {
+        const re = new RegExp(`^${key}\\s+.*$`, 'm');
+        if (re.test(cfg)) return cfg.replace(re, `${key} ${value}`);
+        return cfg.trimEnd() + `\n${key} ${value}\n`;
+      };
+
+      let out = text || '';
+      // Enforce crisp scaling and avoid any visual flash
+      out = setOrAdd(out, 'integer_scaling', '1');
+      out = setOrAdd(out, 'vga_porch_flash', '0');
+      // Avoid SDL joystick path to prevent duplicate inputs with web controller
+      out = setOrAdd(out, 'use_joystick', '0');
+      // Align key bindings with our UI mappings (SDL scancodes)
+      // Arrows
+      out = setOrAdd(out, 'key_up', '82');     // SDL_SCANCODE_UP
+      out = setOrAdd(out, 'key_down', '81');   // SDL_SCANCODE_DOWN
+      out = setOrAdd(out, 'key_left', '80');   // SDL_SCANCODE_LEFT
+      out = setOrAdd(out, 'key_right', '79');  // SDL_SCANCODE_RIGHT
+      // Actions
+      out = setOrAdd(out, 'key_fire', '224');  // SDL_SCANCODE_LCTRL
+      out = setOrAdd(out, 'key_use', '44');    // SDL_SCANCODE_SPACE
+      // Strafes (direct keys, not modifier)
+      out = setOrAdd(out, 'key_strafeleft', '54');   // SDL_SCANCODE_COMMA
+      out = setOrAdd(out, 'key_straferight', '55');  // SDL_SCANCODE_PERIOD
+      // Optional: keep strafe modifier as Alt (46) if present
+      // Optional: force software renderer via query (?doom_soft=1) for debugging
+      try {
+        const url = new URL(window.location.href);
+        const soft = url.searchParams.get('doom_soft');
+        if (soft === '1') {
+          out = setOrAdd(out, 'force_software_renderer', '1');
+        }
+      } catch {}
+      // Respect user's previous choice otherwise
+      return out;
+    };
+
     try {
-      // Check if default.cfg already exists
-      const stat = window.Module.FS.stat('default.cfg');
-      if (stat) {
-        return; // Already exists
-      }
-    } catch (e) {
-      // File doesn't exist, create it synchronously
+      // Try to read existing and patch in place
+      const existing = window.Module.FS.readFile('default.cfg', { encoding: 'utf8' });
+      const patched = applyPatches(existing as unknown as string);
+      window.Module.FS.writeFile('default.cfg', patched);
+      return;
+    } catch (_) {
+      // File doesn't exist, fetch and write patched version synchronously
       const doomPath = `${this.config.baseUrl}doom`;
       const xhr = new XMLHttpRequest();
-      xhr.open('GET', `${doomPath}/default.cfg`, false); // Synchronous
+      xhr.open('GET', `${doomPath}/default.cfg`, false);
       xhr.send(null);
-
       if (xhr.status === 200) {
-        window.Module.FS.writeFile('default.cfg', xhr.responseText);
+        const patched = applyPatches(xhr.responseText);
+        window.Module.FS.writeFile('default.cfg', patched);
       } else {
         console.warn('Failed to load default.cfg, game will use defaults');
       }
@@ -494,20 +535,25 @@ export class DoomEngine {
     if (!this.isGameStarted) return;
 
     const key = this.keyMapping[buttonId];
-    if (!key) return;
+    if (!key) {
+      console.warn(`[Controller] No key mapping for button: ${buttonId}`);
+      return;
+    }
 
     try {
+      console.log(`[Controller] Input: ${buttonId} → ${key} (${pressed ? 'pressed' : 'released'})`);
+
       // Track pressed keys by their actual key value to avoid duplicate events
       // (multiple buttons might map to the same key)
       if (pressed) {
         if (this.pressedKeys.has(key)) {
-          console.log(`[Controller] Skipping duplicate keydown for ${buttonId} → ${key}`);
+          console.log(`[Controller] ⚠️ Skipping duplicate keydown for ${buttonId} → ${key}`);
           return;
         }
         this.pressedKeys.add(key);
       } else {
         if (!this.pressedKeys.has(key)) {
-          console.log(`[Controller] Skipping duplicate keyup for ${buttonId} → ${key}`);
+          console.log(`[Controller] ⚠️ Skipping duplicate keyup for ${buttonId} → ${key}`);
           return;
         }
         this.pressedKeys.delete(key);
@@ -515,7 +561,7 @@ export class DoomEngine {
 
       // Method 1: Try using SDL2 API directly (most reliable for Emscripten)
       if (this.sendSDLKeyEvent(key, pressed)) {
-        console.log(`[Controller] SDL: ${pressed ? 'down' : 'up'} ${buttonId} → ${key}`);
+        console.log(`[Controller] ✓ SDL: ${pressed ? 'keydown' : 'keyup'} ${buttonId} → ${key}`);
         return;
       }
 
@@ -542,13 +588,12 @@ export class DoomEngine {
         // Some browsers don't allow this - continue anyway
       }
 
-      // Dispatch to document only (Emscripten listens on document)
-      // Sending to both canvas and document causes duplicate events
+      // Dispatch to document (Emscripten listens here)
       document.dispatchEvent(event);
+      console.log(`[Controller] ✓ KeyboardEvent: ${eventType} ${buttonId} → ${key}`);
 
-      console.log(`[Controller] Event: ${eventType} ${buttonId} → ${key} (${keyCode})`);
     } catch (error) {
-      console.error('Failed to handle controller input:', error);
+      console.error('[Controller] ❌ Failed to handle controller input:', error);
     }
   }
 

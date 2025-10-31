@@ -134,13 +134,18 @@ export class InputHandler {
     source: 'touch' | 'pointer' | 'gamepad'
   ): void {
     const currentState = this.state[buttonId];
-    if (!currentState) return;
+    if (!currentState) {
+      console.warn(`[InputHandler] UpdateButton: No state for ${buttonId}`);
+      return;
+    }
 
     const changed = currentState.pressed !== pressed;
 
     if (changed || value !== currentState.value) {
       const timestamp = performance.now();
       this.state[buttonId] = { pressed, value, timestamp };
+
+      console.log(`[InputHandler] UpdateButton: ${buttonId} ${pressed ? 'PRESS' : 'RELEASE'} (${source})`);
 
       this.emit({
         buttonId,
@@ -165,6 +170,8 @@ export class InputHandler {
       this.schema.height
     );
     const buttonId = findHitButton(x, y, this.schema);
+
+    console.log(`[InputHandler] PointerDown: (${x.toFixed(0)}, ${y.toFixed(0)}) → ${buttonId || 'none'}`);
 
     if (buttonId) {
       const pointerInfo: PointerInfo = {
@@ -204,6 +211,8 @@ export class InputHandler {
     const newButtonId = findHitButton(x, y, this.schema);
 
     if (newButtonId !== pointerInfo.buttonId) {
+      console.log(`[InputHandler] PointerMove: ${pointerInfo.buttonId || 'none'} → ${newButtonId || 'none'}`);
+
       // Release old button
       if (pointerInfo.buttonId) {
         this.updateButton(pointerInfo.buttonId, false, 0, 'pointer');
@@ -231,7 +240,12 @@ export class InputHandler {
     source: 'pointer' | 'touch'
   ): void {
     const pointerInfo = this.pointers.get(pointerId);
-    if (!pointerInfo) return;
+    if (!pointerInfo) {
+      console.log(`[InputHandler] ReleasePointer: No pointer info for ID ${pointerId}`);
+      return;
+    }
+
+    console.log(`[InputHandler] ReleasePointer: ${pointerInfo.buttonId || 'none'} (source: ${source})`);
 
     if (pointerInfo.buttonId) {
       this.updateButton(pointerInfo.buttonId, false, 0, source);

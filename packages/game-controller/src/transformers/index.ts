@@ -23,6 +23,17 @@ export { buildControllerPrompt } from './types';
 export type { ControllerAsset, ControllerAssetsManifest } from './assets';
 export { getAssetsByOrientation, getAssetById, getAssetUrl } from './assets';
 
+// Theme system
+export type { ControllerTheme } from './themes';
+export {
+  CONTROLLER_THEMES,
+  THEME_CATEGORIES,
+  getTheme,
+  getAllThemes,
+  getThemesByCategory,
+  getDefaultTheme,
+} from './themes';
+
 // Image conversion utilities (browser)
 export {
   svgToPng,

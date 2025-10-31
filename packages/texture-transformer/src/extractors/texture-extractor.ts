@@ -75,7 +75,24 @@ export function determineCategory(lumpName: string): TextureCategory {
  * Check if lump is likely a picture format
  */
 export function isPictureLump(lump: WadLump): boolean {
-  // Pictures must have at least header (8 bytes) + some data
+  // Exclude known non-picture lumps
+  const name = lump.name.toUpperCase();
+  const excludedPatterns = [
+    'DEMO', // Demo files (DEMO1, DEMO2, DEMO3)
+    'THINGS', 'LINEDEFS', 'SIDEDEFS', 'VERTEXES', 'SEGS', 'SSECTORS', 'NODES', 'SECTORS', 'REJECT', 'BLOCKMAP', // Map data
+    'PLAYPAL', 'COLORMAP', 'ENDOOM', 'GENMIDI', 'DMXGUS', // System lumps
+    'TEXTURE1', 'TEXTURE2', 'PNAMES', // Texture definitions
+    'D_', 'DP_', // Music (D_E1M1, etc.)
+    'DS_', // Sound effects
+  ];
+
+  for (const pattern of excludedPatterns) {
+    if (name.startsWith(pattern)) {
+      return false;
+    }
+  }
+
+  // Pictures must have at least header (8 bytes) + column offsets + some data
   if (lump.size < 16) {
     return false;
   }
@@ -89,6 +106,29 @@ export function isPictureLump(lump: WadLump): boolean {
     // Sanity check dimensions
     if (width <= 0 || height <= 0 || width > 4096 || height > 4096) {
       return false;
+    }
+
+    // Check if buffer has enough space for column offsets
+    const minSize = 8 + width * 4;
+    if (lump.size < minSize) {
+      return false;
+    }
+
+    // Validate first column offset
+    const firstColumnOffset = view.getUint32(8, true);
+
+    // Column offset should be at least after the offset table
+    if (firstColumnOffset < minSize || firstColumnOffset >= lump.size) {
+      return false;
+    }
+
+    // Validate a few more column offsets if possible
+    const numToCheck = Math.min(width, 4);
+    for (let i = 0; i < numToCheck; i++) {
+      const offset = view.getUint32(8 + i * 4, true);
+      if (offset < minSize || offset >= lump.size) {
+        return false;
+      }
     }
 
     return true;

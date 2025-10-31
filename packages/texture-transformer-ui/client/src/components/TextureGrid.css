@@ -1,0 +1,78 @@
+.texture-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 1rem;
+}
+
+.texture-card {
+  background: #2a2a2a;
+  border: 1px solid #444;
+  border-radius: 8px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.texture-card:hover {
+  border-color: #ff4444;
+  box-shadow: 0 4px 12px rgba(255, 68, 68, 0.2);
+  transform: translateY(-4px);
+}
+
+.texture-preview {
+  position: relative;
+  aspect-ratio: 1;
+  background: #1a1a1a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.texture-image {
+  max-width: 100%;
+  max-height: 100%;
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+}
+
+.texture-badge {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  background: rgba(0, 0, 0, 0.8);
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.texture-badge.transformed {
+  color: #00ff00;
+}
+
+.texture-badge.confirmed {
+  color: #00aaff;
+  top: 2rem;
+}
+
+.texture-info {
+  padding: 0.75rem;
+}
+
+.texture-name {
+  font-weight: 600;
+  color: #fff;
+  margin-bottom: 0.25rem;
+  font-size: 0.9rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.texture-category {
+  color: #999;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+}

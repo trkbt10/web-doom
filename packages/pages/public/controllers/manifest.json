@@ -1,0 +1,84 @@
+{
+  "version": "1.0.0",
+  "generatedAt": "2025-10-31T06:23:56.236Z",
+  "backend": "gemini",
+  "totalAssets": 6,
+  "orientations": {
+    "landscape": 3,
+    "portrait": 3
+  },
+  "assets": [
+    {
+      "id": "doom-landscape",
+      "name": "DOOM Classic (Landscape)",
+      "filename": "controller-landscape-doom.png",
+      "orientation": "landscape",
+      "style": "DOOM game style with demonic skulls, hellfire, dark metal textures, blood red and dark green colors",
+      "width": 1472,
+      "height": 704,
+      "model": "gemini-2.5-flash-image",
+      "prompt": "Transform this game controller image. A DOOM Controller game controller with buttons and controls. Style: DOOM game style with demonic skulls, hellfire, dark metal textures, blood red and dark green colors. High quality, detailed rendering. Preserve button layout and structure. Maintain the button layout and overall structure. Preserve the transparency of the background. Output size: 1688x780px.",
+      "generatedAt": "2025-10-31T06:22:52.052Z"
+    },
+    {
+      "id": "doom-portrait",
+      "name": "DOOM Classic (Portrait)",
+      "filename": "controller-portrait-doom.png",
+      "orientation": "portrait",
+      "style": "DOOM game style with demonic skulls, hellfire, dark metal textures, blood red and dark green colors",
+      "width": 768,
+      "height": 1344,
+      "model": "gemini-2.5-flash-image",
+      "prompt": "Transform this game controller image. A DOOM Controller (Portrait) game controller with buttons and controls. Style: DOOM game style with demonic skulls, hellfire, dark metal textures, blood red and dark green colors. High quality, detailed rendering. Preserve button layout and structure. Maintain the button layout and overall structure. Preserve the transparency of the background. Output size: 800x1420px.",
+      "generatedAt": "2025-10-31T06:23:05.329Z"
+    },
+    {
+      "id": "retro-landscape",
+      "name": "Retro Arcade (Landscape)",
+      "filename": "controller-landscape-retro.png",
+      "orientation": "landscape",
+      "style": "retro arcade style with 80s aesthetic, pixelated details, CRT scanlines, vintage gaming look",
+      "width": 1472,
+      "height": 704,
+      "model": "gemini-2.5-flash-image",
+      "prompt": "Transform this game controller image. A DOOM Controller game controller with buttons and controls. Style: retro arcade style with 80s aesthetic, pixelated details, CRT scanlines, vintage gaming look. High quality, detailed rendering. Preserve button layout and structure. Maintain the button layout and overall structure. Preserve the transparency of the background. Output size: 1688x780px.",
+      "generatedAt": "2025-10-31T06:23:17.495Z"
+    },
+    {
+      "id": "retro-portrait",
+      "name": "Retro Arcade (Portrait)",
+      "filename": "controller-portrait-retro.png",
+      "orientation": "portrait",
+      "style": "retro arcade style with 80s aesthetic, pixelated details, CRT scanlines, vintage gaming look",
+      "width": 768,
+      "height": 1344,
+      "model": "gemini-2.5-flash-image",
+      "prompt": "Transform this game controller image. A DOOM Controller (Portrait) game controller with buttons and controls. Style: retro arcade style with 80s aesthetic, pixelated details, CRT scanlines, vintage gaming look. High quality, detailed rendering. Preserve button layout and structure. Maintain the button layout and overall structure. Preserve the transparency of the background. Output size: 800x1420px.",
+      "generatedAt": "2025-10-31T06:23:29.815Z"
+    },
+    {
+      "id": "cyberpunk-landscape",
+      "name": "Cyberpunk Neon (Landscape)",
+      "filename": "controller-landscape-cyberpunk.png",
+      "orientation": "landscape",
+      "style": "cyberpunk neon style with holographic buttons and futuristic design, glowing edges, high-tech aesthetic",
+      "width": 1472,
+      "height": 704,
+      "model": "gemini-2.5-flash-image",
+      "prompt": "Transform this game controller image. A DOOM Controller game controller with buttons and controls. Style: cyberpunk neon style with holographic buttons and futuristic design, glowing edges, high-tech aesthetic. High quality, detailed rendering. Preserve button layout and structure. Maintain the button layout and overall structure. Preserve the transparency of the background. Output size: 1688x780px.",
+      "generatedAt": "2025-10-31T06:23:42.487Z"
+    },
+    {
+      "id": "cyberpunk-portrait",
+      "name": "Cyberpunk Neon (Portrait)",
+      "filename": "controller-portrait-cyberpunk.png",
+      "orientation": "portrait",
+      "style": "cyberpunk neon style with holographic buttons and futuristic design, glowing edges, high-tech aesthetic",
+      "width": 768,
+      "height": 1344,
+      "model": "gemini-2.5-flash-image",
+      "prompt": "Transform this game controller image. A DOOM Controller (Portrait) game controller with buttons and controls. Style: cyberpunk neon style with holographic buttons and futuristic design, glowing edges, high-tech aesthetic. High quality, detailed rendering. Preserve button layout and structure. Maintain the button layout and overall structure. Preserve the transparency of the background. Output size: 800x1420px.",
+      "generatedAt": "2025-10-31T06:23:56.236Z"
+    }
+  ]
+}

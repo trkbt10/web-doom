@@ -40,6 +40,11 @@ export interface GameControllerProps {
    * Callback for state changes (called on every input)
    */
   onStateChange?: (state: ControllerState) => void;
+
+  /**
+   * Custom background image URL (overrides schema background)
+   */
+  backgroundImage?: string;
 }
 
 /**
@@ -52,6 +57,7 @@ export function GameController({
   style,
   showFeedback = true,
   onStateChange,
+  backgroundImage,
 }: GameControllerProps): JSX.Element {
   const imgRef = useRef<HTMLImageElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -60,8 +66,11 @@ export function GameController({
     new Map()
   );
 
-  // Generate controller image from schema
-  const imageUrl = useMemo(() => generateControllerImage(schema), [schema]);
+  // Generate controller image from schema or use custom background
+  const imageUrl = useMemo(
+    () => backgroundImage || generateControllerImage(schema),
+    [schema, backgroundImage]
+  );
 
   // Initialize input handler
   useEffect(() => {
@@ -168,6 +177,7 @@ export function GameController({
           pressedButtons={pressedButtons}
           width={schema.width}
           height={schema.height}
+          showHitRegions={true}
         />
       )}
     </div>

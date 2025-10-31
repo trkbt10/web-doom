@@ -15,6 +15,7 @@ build/
 
 # Misc
 .DS_Store
+.env
 .env.local
 .env.development.local
 .env.test.local
@@ -47,3 +48,11 @@ packages/pages/public/wads/*.WAD
 
 # Texture transformer catalog (generated files)
 packages/texture-transformer/catalog/
+
+# Example outputs (AI-generated images)
+packages/game-controller/examples/output/
+packages/texture-transformer/examples/output/
+
+# Texture transformer UI data (persistent project/theme data)
+packages/texture-transformer-ui/data/*
+!packages/texture-transformer-ui/data/.gitkeep

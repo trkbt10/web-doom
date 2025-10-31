@@ -9,11 +9,78 @@ import {
  * Generate SVG markup for controller from schema
  */
 export function generateControllerSVG(schema: ControllerSchema): string {
-  const { width, height, buttons, background } = schema;
+  const { width, height, buttons, background, displayArea } = schema;
   const bgColor = background?.color || '#1a1a1a';
   const bgOpacity = background?.opacity || 0.8;
 
   const buttonElements = buttons.map(generateButtonSVG).join('\n');
+
+  // Generate display area markup if defined
+  const displayAreaMarkup = displayArea
+    ? `
+      <!-- Display Area -->
+      <rect
+        x="${displayArea.x}"
+        y="${displayArea.y}"
+        width="${displayArea.width}"
+        height="${displayArea.height}"
+        fill="${displayArea.backgroundColor || '#000000'}"
+        stroke="${displayArea.borderColor || '#444444'}"
+        stroke-width="${displayArea.borderWidth || 2}"
+        rx="${displayArea.borderRadius || 0}"
+      />
+      <text
+        x="${displayArea.x + displayArea.width / 2}"
+        y="${displayArea.y + displayArea.height / 2}"
+        fill="#333333"
+        font-family="Arial, sans-serif"
+        font-size="24"
+        font-weight="bold"
+        text-anchor="middle"
+        dominant-baseline="middle"
+        opacity="0.3"
+      >DISPLAY</text>
+    `
+    : '';
+
+  // Generate guide lines for AI understanding
+  const guideMarkup = `
+    <!-- Controller body outline guide (subtle for AI recognition) -->
+    <rect
+      x="0"
+      y="0"
+      width="${width}"
+      height="${height}"
+      fill="none"
+      stroke="rgba(128,128,128,0.15)"
+      stroke-width="2"
+      rx="20"
+    />
+
+    <!-- Display area guide border -->
+    ${displayArea ? `
+    <rect
+      x="${displayArea.x - 5}"
+      y="${displayArea.y - 5}"
+      width="${displayArea.width + 10}"
+      height="${displayArea.height + 10}"
+      fill="none"
+      stroke="rgba(100,100,100,0.12)"
+      stroke-width="1"
+      rx="${(displayArea.borderRadius || 0) + 5}"
+    />
+    ` : ''}
+
+    <!-- Control areas guide -->
+    <text
+      x="10"
+      y="20"
+      fill="rgba(150,150,150,0.2)"
+      font-family="Arial, sans-serif"
+      font-size="12"
+      font-weight="bold"
+    >GAME CONTROLLER</text>
+  `;
 
   return `
     <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
@@ -29,6 +96,11 @@ export function generateControllerSVG(schema: ControllerSchema): string {
 
       <!-- Background -->
       <rect width="${width}" height="${height}" fill="${bgColor}" opacity="${bgOpacity}" rx="20"/>
+
+      <!-- Guide lines for AI -->
+      ${guideMarkup}
+
+      ${displayAreaMarkup}
 
       <!-- Buttons -->
       ${buttonElements}
@@ -60,17 +132,21 @@ function generateButtonSVG(button: ButtonSchema | DPadSchema | StickSchema): str
   if (type === 'rect' || button.type === 'shoulder') {
     const rectX = position.x - size / 2;
     const rectY = position.y - size / 2;
-    const rectHeight = button.type === 'shoulder' ? size * 0.5 : size * 0.6;
+    // Shoulder buttons: height ratio adjusted to match hitRegion (80 * 0.5625 = 45)
+    const rectHeight = button.type === 'shoulder' ? size * 0.5625 : size * 0.6;
     const className = button.type === 'shoulder' ? 'shoulder' : 'button';
 
     // Use smaller font for longer text (like SELECT, START)
     const text = icon || label;
     const labelClass = text.length > 3 ? 'button-label-small' : 'button-label';
 
+    // Calculate actual vertical center of the rect
+    const textY = rectY + rectHeight / 2;
+
     return `
       <g id="${id}">
         <rect class="${className}" x="${rectX}" y="${rectY}" width="${size}" height="${rectHeight}" style="--button-color: ${buttonColor}"/>
-        <text class="${labelClass}" x="${position.x}" y="${position.y}">${text}</text>
+        <text class="${labelClass}" x="${position.x}" y="${textY}">${text}</text>
       </g>
     `;
   }

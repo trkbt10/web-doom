@@ -86,8 +86,14 @@ export class NanobananaBackend implements ImageTransformerBackend {
       apiKey: config.apiKey || process.env.NANOBANANA_API_KEY || '',
       defaultModel: config.defaultModel || 'nanobanana-i2i-v1',
       timeout: config.timeout || 60000,
-      skipSSLVerification: config.skipSSLVerification || false,
+      skipSSLVerification: config.skipSSLVerification ?? process.env.NODE_ENV === 'development',
     };
+
+    if (this.config.skipSSLVerification) {
+      console.warn(
+        '⚠️  SSL certificate verification is disabled. This should only be used in development.'
+      );
+    }
   }
 
   /**
@@ -109,7 +115,8 @@ export class NanobananaBackend implements ImageTransformerBackend {
       );
     }
 
-    const response = await fetch(this.config.endpoint, {
+    // Build fetch options
+    const fetchOptions: RequestInit & { tls?: { rejectUnauthorized?: boolean } } = {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -117,7 +124,14 @@ export class NanobananaBackend implements ImageTransformerBackend {
       },
       body: JSON.stringify(request),
       signal: AbortSignal.timeout(this.config.timeout),
-    });
+    };
+
+    // Add TLS options if SSL verification should be skipped (Bun-specific)
+    if (this.config.skipSSLVerification && typeof Bun !== 'undefined') {
+      fetchOptions.tls = { rejectUnauthorized: false };
+    }
+
+    const response = await fetch(this.config.endpoint, fetchOptions);
 
     if (!response.ok) {
       const errorText = await response.text();
