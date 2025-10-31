@@ -152,14 +152,45 @@ app.post('/:id/compile', async (c) => {
     console.log(`   Transformed: ${stats.transformed}`);
     console.log(`   Original: ${stats.original}\n`);
 
-    // Compile WAD
-    const wadBuffer = await compileWAD(id);
-
     // Get project info for filename
     const project = await getProject(id);
     const filename = project
       ? `${project.name.toLowerCase().replace(/\s+/g, '-')}.wad`
       : 'custom.wad';
+
+    // Create temp directory if it doesn't exist
+    const tempDir = join(process.cwd(), 'temp');
+    if (!existsSync(tempDir)) {
+      await mkdir(tempDir, { recursive: true });
+    }
+
+    // Create temporary output path
+    const tempPath = join(tempDir, `${id}-${Date.now()}.wad`);
+
+    // Recompile WAD using the correct implementation
+    const result = await recompileProjectWAD(id, tempPath);
+
+    if (!result.success) {
+      return c.json(
+        {
+          success: false,
+          error: result.error || 'WAD compilation failed',
+        },
+        500
+      );
+    }
+
+    console.log(`✅ Replaced ${result.replacedCount} textures\n`);
+
+    // Read the compiled WAD file
+    const wadBuffer = await readFile(tempPath);
+
+    // Clean up temporary file
+    try {
+      await unlink(tempPath);
+    } catch (e) {
+      console.warn('Failed to delete temporary file:', e);
+    }
 
     // Set headers for file download
     c.header('Content-Type', 'application/octet-stream');
