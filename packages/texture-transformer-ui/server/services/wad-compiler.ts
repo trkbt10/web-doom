@@ -2,6 +2,10 @@
  * WAD Compiler Service
  * Compiles textures back into a WAD file
  * Uses transformed textures if available, otherwise uses originals
+ *
+ * @deprecated This module is deprecated. Use recompileProjectWAD from wad-service.ts instead.
+ * The compileWAD function does not properly convert images to DOOM picture format,
+ * resulting in invalid WAD files that cannot be loaded by DOOM engines.
  */
 
 import { readFile, readdir } from 'fs/promises';
@@ -94,6 +98,7 @@ export async function compileWAD(projectId: string): Promise<Buffer> {
 
 /**
  * Get compilation statistics
+ * Counts actual files in transformed directory instead of metadata flags
  */
 export async function getCompilationStats(projectId: string): Promise<{
   total: number;
@@ -109,23 +114,23 @@ export async function getCompilationStats(projectId: string): Promise<{
 
   const textureFiles = await readdir(texturesDir);
   let total = 0;
-  let transformed = 0;
-  let original = 0;
 
   for (const file of textureFiles) {
-    if (!file.endsWith('.json')) continue;
-
-    const metadataPath = join(texturesDir, file);
-    const content = await readFile(metadataPath, 'utf-8');
-    const metadata = JSON.parse(content) as TextureMetadata;
-
-    total++;
-    if (metadata.transformedBase64) {
-      transformed++;
-    } else if (metadata.originalBase64) {
-      original++;
+    if (file.endsWith('.json')) {
+      total++;
     }
   }
+
+  // Count actual transformed files
+  const transformedDir = join(projectDir, 'transformed');
+  let transformed = 0;
+
+  if (existsSync(transformedDir)) {
+    const transformedFiles = await readdir(transformedDir);
+    transformed = transformedFiles.filter(f => f.endsWith('.png')).length;
+  }
+
+  const original = total - transformed;
 
   return { total, transformed, original };
 }

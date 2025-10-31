@@ -1,4 +1,7 @@
 import { Hono } from 'hono';
+import { readFile, unlink, mkdir } from 'fs/promises';
+import { join } from 'path';
+import { existsSync } from 'fs';
 import {
   createProject,
   listProjects,
@@ -6,7 +9,8 @@ import {
   updateProject,
   deleteProject,
 } from '../services/project-manager';
-import { compileWAD, getCompilationStats } from '../services/wad-compiler';
+import { getCompilationStats } from '../services/wad-compiler';
+import { recompileProjectWAD } from '../services/wad-service';
 
 const app = new Hono();
 

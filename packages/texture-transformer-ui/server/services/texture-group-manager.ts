@@ -425,6 +425,15 @@ export async function extractTexturesFromSpriteSheet(
 
       const extractedBase64 = `data:image/png;base64,${extracted.toString('base64')}`;
 
+      // Save transformed texture to transformed directory
+      const transformedDir = join(projectDir, 'transformed');
+      if (!existsSync(transformedDir)) {
+        await mkdir(transformedDir, { recursive: true });
+      }
+      const transformedPath = join(transformedDir, `${layout.textureName}.png`);
+      await writeFile(transformedPath, extracted);
+      console.log(`  💾 Saved to: transformed/${layout.textureName}.png`);
+
       // Update texture metadata
       const textureMetadataPath = join(texturesDir, `${layout.textureName}.json`);
 

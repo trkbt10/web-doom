@@ -115,11 +115,13 @@ export async function transformTexture(
     }
 
     // Save transformed image
+    console.log(`💾 Saving transformed texture: ${request.textureName}`);
     await saveTransformedTexture(
       request.projectId,
       request.textureName,
       result.transformed
     );
+    console.log(`✅ Saved transformed texture to: data/${request.projectId}/transformed/${request.textureName}.png`);
 
     // Update metadata with transformation history
     const transformRecord: TransformRecord = {
@@ -198,8 +200,10 @@ export async function revertToTransform(
   const selectedTransform = metadata.transformHistory[historyIndex];
   metadata.transformedBase64 = selectedTransform.resultBase64;
 
+  console.log(`🔄 Reverting texture ${textureName} to history index ${historyIndex}`);
   await saveTransformedTexture(projectId, textureName, selectedTransform.resultBase64);
   await saveTextureMetadata(projectId, textureName, metadata);
+  console.log(`✅ Reverted successfully`);
 }
 
 /**

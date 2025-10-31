@@ -18,6 +18,8 @@ export interface ProjectMetadata {
 export interface TextureMetadata {
   name: string;
   category: string;
+  width: number;
+  height: number;
   originalBase64?: string;
   transformedBase64?: string;
   confirmed: boolean;
@@ -115,7 +117,15 @@ export async function listProjects(): Promise<ProjectMetadata[]> {
         // Recalculate texture counts from actual files
         const textures = await listTextures(metadata.id);
         metadata.textureCount = textures.length;
-        metadata.transformedCount = textures.filter((t) => t.transformedBase64).length;
+
+        // Count actual transformed files in the transformed directory
+        const transformedDir = join(getProjectDir(metadata.id), 'transformed');
+        if (existsSync(transformedDir)) {
+          const transformedFiles = await readdir(transformedDir);
+          metadata.transformedCount = transformedFiles.filter((f) => f.endsWith('.png')).length;
+        } else {
+          metadata.transformedCount = 0;
+        }
 
         projects.push(metadata);
       }
@@ -142,7 +152,15 @@ export async function getProject(projectId: string): Promise<ProjectMetadata | n
   // Recalculate texture counts from actual files
   const textures = await listTextures(projectId);
   metadata.textureCount = textures.length;
-  metadata.transformedCount = textures.filter((t) => t.transformedBase64).length;
+
+  // Count actual transformed files in the transformed directory
+  const transformedDir = join(getProjectDir(projectId), 'transformed');
+  if (existsSync(transformedDir)) {
+    const transformedFiles = await readdir(transformedDir);
+    metadata.transformedCount = transformedFiles.filter((f) => f.endsWith('.png')).length;
+  } else {
+    metadata.transformedCount = 0;
+  }
 
   return metadata;
 }
@@ -269,5 +287,12 @@ export async function saveTransformedTexture(
   const imagePath = join(transformedDir, `${textureName}.png`);
 
   const base64Data = base64Image.replace(/^data:image\/png;base64,/, '');
-  await writeFile(imagePath, Buffer.from(base64Data, 'base64'));
+  const buffer = Buffer.from(base64Data, 'base64');
+
+  console.log(`   📁 Writing to: ${imagePath}`);
+  console.log(`   📊 File size: ${buffer.length} bytes`);
+
+  await writeFile(imagePath, buffer);
+
+  console.log(`   ✅ File written successfully`);
 }
