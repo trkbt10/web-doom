@@ -1,4 +1,5 @@
 import { Routes, Route, Link } from 'react-router-dom';
+import { ProjectProvider } from './contexts/ProjectContext';
 import ProjectListPage from './pages/ProjectListPage';
 import ProjectDetailPage from './pages/ProjectDetailPage';
 import TextureDetailPage from './pages/TextureDetailPage';
@@ -19,10 +20,20 @@ function App() {
       <div className="app-content">
         <Routes>
           <Route path="/" element={<ProjectListPage />} />
-          <Route path="/projects/:projectId" element={<ProjectDetailPage />} />
-          <Route path="/projects/:projectId/textures/:textureName" element={<TextureDetailPage />} />
-          <Route path="/projects/:projectId/groups" element={<GroupsListPage />} />
-          <Route path="/projects/:projectId/groups/:groupId" element={<GroupDetailPage />} />
+          {/* Wrap project routes with ProjectProvider for shared state */}
+          <Route
+            path="/projects/:projectId/*"
+            element={
+              <ProjectProvider>
+                <Routes>
+                  <Route index element={<ProjectDetailPage />} />
+                  <Route path="textures/:textureName" element={<TextureDetailPage />} />
+                  <Route path="groups" element={<GroupsListPage />} />
+                  <Route path="groups/:groupId" element={<GroupDetailPage />} />
+                </Routes>
+              </ProjectProvider>
+            }
+          />
         </Routes>
       </div>
     </div>
